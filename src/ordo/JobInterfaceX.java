@@ -11,7 +11,7 @@ public interface JobInterfaceX  extends JobInterface {
     public void setOutputFormat(Format.Type ft);
     public void setOutputFname(String fname);
     public void setSortComparator(SortComparator sc);
-    
+
     public int getNumberOfReduces();
     public int getNumberOfMaps();
     public Format.Type getInputFormat();
