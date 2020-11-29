@@ -20,7 +20,6 @@ public class KVFormatS implements Format {
     private transient long index = 0;
     private transient Format.OpenMode mode;
 
-
     public KVFormatS(String fname) {
         this.fname = fname;
     }
@@ -29,12 +28,12 @@ public class KVFormatS implements Format {
         try {
             this.mode = mode;
             switch (mode) {
-            case R:
-                br = new BufferedReader(new InputStreamReader(new FileInputStream(fname)));
-                break;
-            case W:
-                bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fname)));
-                break;
+                case R:
+                    br = new BufferedReader(new InputStreamReader(new FileInputStream(fname)));
+                    break;
+                case W:
+                    bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fname)));
+                    break;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -44,12 +43,12 @@ public class KVFormatS implements Format {
     public void close() {
         try {
             switch (mode) {
-            case R:
-                br.close();
-                break;
-            case W:
-                bw.close();
-                break;
+                case R:
+                    br.close();
+                    break;
+                case W:
+                    bw.close();
+                    break;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -61,10 +60,12 @@ public class KVFormatS implements Format {
         try {
             while (true) {
                 String l = br.readLine();
-                if (l == null) return null;
+                if (l == null)
+                    return null;
                 index += l.length();
                 String[] tokens = l.split(KV.SEPARATOR);
-                if (tokens.length != 2) continue;
+                if (tokens.length != 2)
+                    continue;
                 kv.k = tokens[0];
                 kv.v = tokens[1];
                 return kv;
@@ -78,7 +79,7 @@ public class KVFormatS implements Format {
     public void write(KV record) {
         KV kv = new KV();
         try {
-            String s = record.k+KV.SEPARATOR+record.v;
+            String s = record.k + KV.SEPARATOR + record.v;
             bw.write(s, 0, s.length());
             bw.newLine();
             bw.flush();

@@ -5,9 +5,7 @@ import formats.Format;
 import map.MapReduce;
 
 public class Job implements JobInterfaceX {
-    //TODO
-
-
+    // TODO
 
     @Override
     public void setInputFormat(Format.Type ft) {

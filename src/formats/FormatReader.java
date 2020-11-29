@@ -1,5 +1,5 @@
 package formats;
 
 public interface FormatReader {
-	public KV read();
+    public KV read();
 }

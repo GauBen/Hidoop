@@ -6,5 +6,5 @@ import formats.FormatReader;
 import formats.FormatWriter;
 
 public interface Reducer extends Serializable {
-	public void reduce(FormatReader reader, FormatWriter writer);
+    public void reduce(FormatReader reader, FormatWriter writer);
 }

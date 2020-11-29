@@ -6,5 +6,5 @@ import formats.FormatReader;
 import formats.FormatWriter;
 
 public interface Mapper extends Serializable {
-	public void map(FormatReader reader, FormatWriter writer);
+    public void map(FormatReader reader, FormatWriter writer);
 }

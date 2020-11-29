@@ -1,6 +1,7 @@
 // v0.1 (PM,11/20) kv attribut -> variable
 
 package formats;
+
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
-
 
 public class LineFormatS implements Format {
     private static final long serialVersionUID = 1L;
@@ -28,12 +28,12 @@ public class LineFormatS implements Format {
         try {
             this.mode = mode;
             switch (mode) {
-            case R:
-                lnr = new LineNumberReader(new InputStreamReader(new FileInputStream(fname)));
-                break;
-            case W:
-                bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fname)));
-                break;
+                case R:
+                    lnr = new LineNumberReader(new InputStreamReader(new FileInputStream(fname)));
+                    break;
+                case W:
+                    bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fname)));
+                    break;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -43,25 +43,25 @@ public class LineFormatS implements Format {
     public void close() {
         try {
             switch (mode) {
-            case R:
-                lnr.close();
-                break;
-            case W:
-                bw.close();
-                break;
+                case R:
+                    lnr.close();
+                    break;
+                case W:
+                    bw.close();
+                    break;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
     public KV read() {
         KV kv = new KV();
         try {
             kv.k = Integer.toString(lnr.getLineNumber());
             kv.v = lnr.readLine();
-            if (kv.v == null) return null;
+            if (kv.v == null)
+                return null;
             index += kv.v.length();
             return kv;
         } catch (IOException e) {
