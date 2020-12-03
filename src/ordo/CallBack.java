@@ -1,5 +1,9 @@
 package ordo;
 
-public class CallBack {
-    // TODO
+import java.rmi.Remote;
+
+public interface CallBack extends Remote {
+
+    public void done();
+
 }
