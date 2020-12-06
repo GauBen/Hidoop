@@ -2,8 +2,11 @@ package ordo;
 
 
 import formats.Format;
+import formats.Format.OpenMode;
+import formats.KV;
 import formats.KVFormat;
 import formats.LineFormat;
+import hdfs.HdfsClient;
 import map.MapReduce;
 
 import java.net.MalformedURLException;
@@ -19,7 +22,7 @@ public class Job implements JobInterfaceX, CallBack {
      */
     static String serverAddress = "//localhost";
     static int port = 4000;
-    // MapReduce mapReduce;
+    MapReduce mapReduce;
     Format.Type inputFormat;
     String inputFname;
     // TODO : les numberOfReduces/Maps à determnier, donnés par HDFS ??
@@ -32,12 +35,20 @@ public class Job implements JobInterfaceX, CallBack {
 
 
     public Job() {
+        // Empty
+    }
 
+    public static String getTempFolderPath() {
+        return System.getProperty("user.dir") + "/tmp/";
+    }
+
+    public static String getResFolderPath() {
+        return System.getProperty("user.dir") + "/res/";
     }
 
     @Override
     public void startJob(MapReduce mr) {
-        // this.mapReduce = mr; TODO : determiner si il faut le garder en attribut.
+        this.mapReduce = mr;
 
         // Store RMI connections
         Worker[] nodes = new Worker[this.numberOfMaps];
@@ -53,13 +64,22 @@ public class Job implements JobInterfaceX, CallBack {
 
 
         // Set the Format
-        Format iFormat = this.getFormatFromType(this.inputFormat);
-        Format oFormat = this.getFormatFromType(this.outputFormat);
+        Format iFormat = this.getFormatFromType(this.inputFormat, inputFname);
+        Format oFormat;
 
 
+        //TODO : dire au HDFS qu'on a creer le fichier temp
+        // HDFS CREER TEMP
+        this.createTempFile();
+
+        int n = 0;
         for (Worker node : nodes) {
             try {
+                // TODO : Quel nom auront nos fragments ???
+                oFormat = this.getFormatFromType(this.outputFormat, outputFname + "_temp_part" + n); // TODO : Demander aux concepteurs de HDFS leur convention de nommage d'un fragment
                 node.runMap(mr, iFormat, oFormat, this);
+
+                n++;
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -69,14 +89,60 @@ public class Job implements JobInterfaceX, CallBack {
         //TODO : le demarrer ? S'en occuper.
     }
 
-    public Format getFormatFromType(Format.Type type) {
+    /**
+     * Called by the nodes when they are done Mapping
+     */
+    @Override
+    public void done() {
+        this.numberOfMapsDone++;
+        // When all maps are done
+        if (this.numberOfMapsDone == this.numberOfMaps) {
+            this.doReduceJob();
+        }
+    }
+
+    /**
+     * Declare the partial result file in HDFS
+     */
+    public void createTempFile() {
+        // use HDFS to create a file
+        Format format = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
+
+        // Create the local file
+        format.open(OpenMode.W);
+        format.write(new KV());
+
+
+        HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1); //TODO : verifier ce qu'est le repfactor
+    }
+
+    public String getTempFileName() {
+        return this.outputFname + "_temp";
+    }
+
+    public void doReduceJob() {
+        // Get the complete file from the HDFS and replace the empty file
+        // TODO : verifier que ça remplace bien
+        HdfsClient.HdfsRead(this.getTempFileName(), getTempFolderPath() + this.getTempFileName());
+
+        // We open the temp file
+        Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName()); // TODO : remplacer par le nom du temp
+
+        // We create the result file
+        Format oFormat = this.getFormatFromType(this.outputFormat, getResFolderPath() + this.outputFname);
+
+        // Do the reduce
+        this.mapReduce.reduce(iFormat, oFormat);
+    }
+
+    public Format getFormatFromType(Format.Type type, String fName) {
         Format format;
         switch (type) {
             case KV:
-                format = new KVFormat(inputFname);
+                format = new KVFormat(fName);
                 break;
             case LINE:
-                format = new LineFormat(inputFname);
+                format = new LineFormat(fName);
                 break;
             default:
                 format = null;
@@ -87,6 +153,9 @@ public class Job implements JobInterfaceX, CallBack {
 
         return format;
     }
+
+
+    /* Setters and getters */
 
     @Override
     public int getNumberOfReduces() {
@@ -156,14 +225,6 @@ public class Job implements JobInterfaceX, CallBack {
     @Override
     public void setSortComparator(SortComparator sc) {
         this.sortComparator = sc;
-    }
-
-    /**
-     * Called by the nodes when they are done Mapping
-     */
-    @Override
-    public void done() {
-        this.numberOfMapsDone++;
     }
 
 }
