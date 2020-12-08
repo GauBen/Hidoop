@@ -1,6 +1,10 @@
 package formats;
 
-public class KV {
+import java.io.Serializable;
+
+public class KV implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public static final String SEPARATOR = "<->";
 
