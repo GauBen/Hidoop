@@ -16,4 +16,8 @@ public class Metadata implements Serializable {
         return this.name;
     }
 
+    public String getFragmentName() {
+        return HdfsClient.getFragmentName(this.getName());
+    }
+
 }

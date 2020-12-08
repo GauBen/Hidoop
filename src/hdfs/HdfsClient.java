@@ -17,17 +17,15 @@ import formats.LineFormatS;
 
 public class HdfsClient {
 
-    private static void usage() {
-        System.out.println("Usage: java HdfsClient read <file>");
-        System.out.println("Usage: java HdfsClient write <line|kv> <file>");
-        System.out.println("Usage: java HdfsClient delete <file>");
-    }
-
-    public static void HdfsDelete(String hdfsFname) {
+    public enum Action {
+        READ, WRITE, DELETE
     }
 
     public static String getFragmentName(String localFSSourceFname) {
         return new File(localFSSourceFname).getName() + ".kv";
+    }
+
+    public static void HdfsDelete(String hdfsFname) {
     }
 
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor) {
@@ -36,8 +34,10 @@ public class HdfsClient {
         try {
             Socket sock = new Socket("127.0.0.1", 8123);
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+            out.writeObject(Action.WRITE);
             File f = new File(localFSSourceFname);
             out.writeObject(new Metadata(f.getName()));
+            out.writeObject(fmt);
             while (true) {
                 KV line = lf.read();
                 System.out.println(line);
@@ -90,6 +90,12 @@ public class HdfsClient {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+    private static void usage() {
+        System.out.println("Usage: java HdfsClient read <file>");
+        System.out.println("Usage: java HdfsClient write <line|kv> <file>");
+        System.out.println("Usage: java HdfsClient delete <file>");
     }
 
 }
