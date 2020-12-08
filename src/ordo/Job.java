@@ -54,6 +54,7 @@ public class Job implements JobInterfaceX, CallBack {
         Worker[] nodes = new Worker[this.numberOfMaps];
 
         // Connect to all node
+        // TODO : ATTENTION AUX NOMS DES NODES
         for (int i = 0; i < this.numberOfMaps; i++) {
             try {
                 nodes[i] = ((Worker) Naming.lookup(Job.serverAddress + ":" + Job.port + "/Node" + i));
@@ -64,19 +65,16 @@ public class Job implements JobInterfaceX, CallBack {
 
 
         // Set the Format
-        Format iFormat = this.getFormatFromType(this.inputFormat, inputFname);
+        Format iFormat = this.getFormatFromType(this.inputFormat, HdfsClient.getFragmentName(inputFname));
         Format oFormat;
 
-
-        //TODO : dire au HDFS qu'on a creer le fichier temp
-        // HDFS CREER TEMP
+        // Create temp result file
         this.createTempFile();
 
         int n = 0;
         for (Worker node : nodes) {
             try {
-                // TODO : Quel nom auront nos fragments ???
-                oFormat = this.getFormatFromType(this.outputFormat, outputFname + "_temp_part" + n); // TODO : Demander aux concepteurs de HDFS leur convention de nommage d'un fragment
+                oFormat = this.getFormatFromType(this.outputFormat, HdfsClient.getFragmentName(outputFname));
                 node.runMap(mr, iFormat, oFormat, this);
 
                 n++;
@@ -84,9 +82,6 @@ public class Job implements JobInterfaceX, CallBack {
                 e.printStackTrace();
             }
         }
-
-
-        //TODO : le demarrer ? S'en occuper.
     }
 
     /**
