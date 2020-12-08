@@ -34,7 +34,7 @@ public class HdfsServer {
                 ObjectInputStream stream = new ObjectInputStream(sock.getInputStream());
                 Metadata metadata = (Metadata) stream.readObject();
                 System.out.println(metadata);
-                Format lf = new KVFormat("./node-1/" + metadata.getName() + ".rmlkk");
+                Format lf = new KVFormat("./node-1/" + HdfsClient.getFragmentName(metadata.getName()));
                 lf.open(Format.OpenMode.W);
                 while (true) {
                     KV kv = (KV) stream.readObject();

@@ -26,6 +26,10 @@ public class HdfsClient {
     public static void HdfsDelete(String hdfsFname) {
     }
 
+    public static String getFragmentName(String localFSSourceFname) {
+        return new File(localFSSourceFname).getName() + ".kv";
+    }
+
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor) {
         Format lf = new LineFormatS(localFSSourceFname);
         lf.open(Format.OpenMode.R);
