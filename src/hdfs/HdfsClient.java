@@ -6,10 +6,14 @@
 
 package hdfs;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
 import formats.Format;
 import formats.KV;
-import formats.KVFormat;
-import formats.LineFormat;
+import formats.LineFormatS;
 
 public class HdfsClient {
 
@@ -23,6 +27,25 @@ public class HdfsClient {
     }
 
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor) {
+        Format lf = new LineFormatS(localFSSourceFname);
+        lf.open(Format.OpenMode.R);
+        try {
+            Socket sock = new Socket("127.0.0.1", 8123);
+            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+            File f = new File(localFSSourceFname);
+            out.writeObject(new Metadata(f.getName()));
+            while (true) {
+                KV line = lf.read();
+                System.out.println(line);
+                out.writeObject(line);
+                if (line == null) {
+                    break;
+                }
+            }
+            sock.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void HdfsRead(String hdfsFname, String localFSDestFname) {
