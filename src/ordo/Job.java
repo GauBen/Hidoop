@@ -3,7 +3,6 @@ package ordo;
 
 import formats.Format;
 import formats.Format.OpenMode;
-import formats.KV;
 import formats.KVFormat;
 import formats.LineFormat;
 import hdfs.HdfsClient;
@@ -103,6 +102,7 @@ public class Job implements JobInterfaceX {
 
 
         try {
+            // We wait for all nodes to call CallBack
             callBack.getSemaphore().acquire();
 
             // When callback frees semaphores, all nodes are done
@@ -129,10 +129,8 @@ public class Job implements JobInterfaceX {
 
             // Create the local file
             format.open(OpenMode.W);
-            format.write(new KV());
 
-
-            HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1); //TODO : verifier ce qu'est le repfactor
+            HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -153,7 +151,7 @@ public class Job implements JobInterfaceX {
         HdfsClient.HdfsRead(this.getTempFileName(), getTempFolderPath() + this.getTempFileName());
 
         // We open the temp file
-        Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName()); // TODO : remplacer par le nom du temp
+        Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
 
         // We create the result file
         File file = new File(getResFolderPath() + this.outputFname);
