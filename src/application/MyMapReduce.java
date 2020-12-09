@@ -1,15 +1,13 @@
 package application;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
-
-import map.MapReduce;
-import ordo.Job;
 import formats.Format;
 import formats.FormatReader;
 import formats.FormatWriter;
 import formats.KV;
+import map.MapReduce;
+import ordo.Job;
+
+import java.util.HashMap;
 
 public class MyMapReduce implements MapReduce {
     private static final long serialVersionUID = 1L;
@@ -45,7 +43,15 @@ public class MyMapReduce implements MapReduce {
             writer.write(new KV(k, hm.get(k).toString()));
     }
 
+    public static void usage() {
+        System.out.println("Usage : MyMapReduce <id>");
+    }
+
     public static void main(String args[]) {
+        if (args.length < 1) {
+            usage();
+            return;
+        }
         Job j = new Job();
         j.setInputFormat(Format.Type.LINE);
         j.setInputFname(args[0]);

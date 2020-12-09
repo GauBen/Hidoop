@@ -29,6 +29,27 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     static int port = 4000;
 
+    public static void usage() {
+        System.out.println("Usage : WorkerImpl <id>");
+    }
+
+    public static void main(String[] args) {
+        try {
+            if (args.length < 1) {
+                usage();
+                return;
+            }
+            Worker worker = new WorkerImpl();
+            String id = args[0]; // Id has to be a number between 0 and the total number of nodes minus 1
+
+            Naming.rebind(WorkerImpl.serverAddress + ":" + WorkerImpl.port + "/Node" + id, worker);
+            System.out.println("Worker" + args[0] + " bound in registry");
+
+        } catch (RemoteException | MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void runMap(Mapper m, Format reader, Format writer, CallBack cb) throws RemoteException {
         // Open files
@@ -38,22 +59,12 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
         m.map(reader, writer);
 
-        cb.done();
-
-    }
-
-
-    public static void main(String[] args) {
         try {
-            WorkerImpl worker = new WorkerImpl();
-            String id = args[0]; // Id has to be a number between 0 and the total number of nodes minus 1
-
-            Naming.rebind(WorkerImpl.serverAddress + ":" + WorkerImpl.port + "/Node" + id, worker);
-            System.out.println("Worker" + args[0] + " bound in registry");
-
-        } catch (RemoteException | MalformedURLException e) {
+            cb.done();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
     }
 
 }

@@ -9,12 +9,14 @@ import formats.LineFormat;
 import hdfs.HdfsClient;
 import map.MapReduce;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-public class Job implements JobInterfaceX, CallBack {
+public class Job implements JobInterfaceX {
     // TODO
 
     /**
@@ -35,7 +37,13 @@ public class Job implements JobInterfaceX, CallBack {
 
 
     public Job() {
+        super();
         // Empty
+        this.numberOfMaps = 1;
+        this.numberOfReduces = 1;
+        //TODO : changer cela pour que ce soit dynamique
+        //  this.inputFormat = Format.Type.KV;
+        this.outputFormat = Format.Type.KV;
     }
 
     public static String getTempFolderPath() {
@@ -71,44 +79,63 @@ public class Job implements JobInterfaceX, CallBack {
         // Create temp result file
         this.createTempFile();
 
+        CallBackImpl callBack = null;
+        try {
+            callBack = new CallBackImpl(this.getNumberOfMaps());
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            return;
+        }
+
         int n = 0;
         for (Worker node : nodes) {
             try {
                 oFormat = this.getFormatFromType(this.outputFormat, HdfsClient.getFragmentName(outputFname));
-                node.runMap(mr, iFormat, oFormat, this);
+                node.runMap(mr, iFormat, oFormat, callBack);
 
                 n++;
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         }
-    }
 
-    /**
-     * Called by the nodes when they are done Mapping
-     */
-    @Override
-    public void done() {
-        this.numberOfMapsDone++;
-        // When all maps are done
-        if (this.numberOfMapsDone == this.numberOfMaps) {
+
+        try {
+            callBack.getSemaphore().acquire();
+
+            // When callback frees semaphores, all nodes are done
             this.doReduceJob();
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
+
     }
 
     /**
      * Declare the partial result file in HDFS
      */
     public void createTempFile() {
-        // use HDFS to create a file
-        Format format = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
 
-        // Create the local file
-        format.open(OpenMode.W);
-        format.write(new KV());
+        try {
+            System.out.println("Creating a temporary file... " + getTempFolderPath() + this.getTempFileName());
+            File file = new File(getTempFolderPath() + this.getTempFileName());
+            file.createNewFile();
+            // use HDFS to create a file
+            Format format = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
+
+            // Create the local file
+            format.open(OpenMode.W);
+            format.write(new KV());
 
 
-        HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1); //TODO : verifier ce qu'est le repfactor
+            HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1); //TODO : verifier ce qu'est le repfactor
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public String getTempFileName() {
@@ -200,6 +227,8 @@ public class Job implements JobInterfaceX, CallBack {
     @Override
     public void setInputFname(String fname) {
         this.inputFname = fname;
+        //TODO : changer mieux
+        this.outputFname = this.inputFname + "_result";
     }
 
     @Override
