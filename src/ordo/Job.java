@@ -92,7 +92,7 @@ public class Job implements JobInterfaceX {
             try {
                 //TODO : ne pas hardcoder la convention de nom des dossiers de node
                 iFormat = this.getFormatFromType(this.inputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(inputFname));
-                oFormat = this.getFormatFromType(this.outputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(outputFname));
+                oFormat = this.getFormatFromType(this.outputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(getTempFileName()));
                 node.runMap(mr, iFormat, oFormat, callBack);
 
                 n++;
@@ -145,6 +145,9 @@ public class Job implements JobInterfaceX {
     }
 
     public void doReduceJob() {
+
+        System.out.println("Let's reduce " + getTempFolderPath() + this.getTempFileName());
+
         // Get the complete file from the HDFS and replace the empty file
         // TODO : verifier que ça remplace bien
         HdfsClient.HdfsRead(this.getTempFileName(), getTempFolderPath() + this.getTempFileName());
@@ -153,7 +156,17 @@ public class Job implements JobInterfaceX {
         Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName()); // TODO : remplacer par le nom du temp
 
         // We create the result file
+        File file = new File(getResFolderPath() + this.outputFname);
+        try {
+            file.createNewFile();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Format oFormat = this.getFormatFromType(this.outputFormat, getResFolderPath() + this.outputFname);
+
+        iFormat.open(OpenMode.R);
+        oFormat.open(OpenMode.W);
 
         // Do the reduce
         this.mapReduce.reduce(iFormat, oFormat);
