@@ -52,10 +52,13 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     @Override
     public void runMap(Mapper m, Format reader, Format writer, CallBack cb) throws RemoteException {
+
+        System.out.println("Voici le nom de mon fragment a ouvrir" + reader.getFname());
+
+
         // Open files
         reader.open(OpenMode.R);
         writer.open(OpenMode.W);
-
 
         m.map(reader, writer);
 

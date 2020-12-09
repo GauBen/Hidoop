@@ -73,7 +73,7 @@ public class Job implements JobInterfaceX {
 
 
         // Set the Format
-        Format iFormat = this.getFormatFromType(this.inputFormat, HdfsClient.getFragmentName(inputFname));
+        Format iFormat;
         Format oFormat;
 
         // Create temp result file
@@ -90,7 +90,9 @@ public class Job implements JobInterfaceX {
         int n = 0;
         for (Worker node : nodes) {
             try {
-                oFormat = this.getFormatFromType(this.outputFormat, HdfsClient.getFragmentName(outputFname));
+                //TODO : ne pas hardcoder la convention de nom des dossiers de node
+                iFormat = this.getFormatFromType(this.inputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(inputFname));
+                oFormat = this.getFormatFromType(this.outputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(outputFname));
                 node.runMap(mr, iFormat, oFormat, callBack);
 
                 n++;
