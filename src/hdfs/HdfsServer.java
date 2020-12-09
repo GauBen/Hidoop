@@ -1,14 +1,23 @@
+/**
+ * HDFS - Hidoop Distributed File System
+ *
+ * Serveur développé par Théo Petit et Gautier Ben Aïm
+ */
+
 package hdfs;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 import formats.Format;
 import formats.KV;
 import formats.KVFormat;
+import formats.KVFormatS;
 import formats.LineFormat;
+import formats.LineFormatS;
 import formats.Format.Type;
 import hdfs.HdfsClient.Action;
 
@@ -49,8 +58,12 @@ public class HdfsServer {
 
                 // On attend une connexion au serveur HDFS
                 sock = this.server.accept();
-                ObjectInputStream stream = new ObjectInputStream(sock.getInputStream());
-                this.handleRequest(stream);
+                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
+                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+
+                // On traite la requête entrante
+                this.handleRequest(inputStream, outputStream);
+
                 sock.close();
 
             } catch (IOException e) {
@@ -67,19 +80,20 @@ public class HdfsServer {
     /**
      * On traite les chaussettes ouvertes.
      *
-     * @param stream Flux d'objets entrants
+     * @param inputStream  Flux d'objets entrants
+     * @param outputStream Flux d'objets sortants
      */
-    private void handleRequest(ObjectInputStream stream) {
+    private void handleRequest(ObjectInputStream inputStream, ObjectOutputStream outputStream) {
         try {
-            Action action = (Action) stream.readObject();
-            Metadata metadata = (Metadata) stream.readObject();
+            Action action = (Action) inputStream.readObject();
+            Metadata metadata = (Metadata) inputStream.readObject();
 
             System.out.println(metadata);
 
             if (action == Action.READ) {
-                this.handleRead(metadata, stream);
+                this.handleRead(metadata, outputStream);
             } else if (action == Action.WRITE) {
-                this.handleWrite(metadata, stream);
+                this.handleWrite(metadata, inputStream);
             } else if (action == Action.DELETE) {
                 this.handleDelete(metadata);
             } else {
@@ -91,13 +105,40 @@ public class HdfsServer {
         }
     }
 
-    private void handleRead(Metadata metadata, ObjectInputStream stream) throws ClassNotFoundException, IOException {
+    /**
+     * Traite une requête de lecture.
+     *
+     * @param metadata Informations sur le fichier à lire
+     * @param stream   Flux inscriptible pour envoyer les lignes
+     * @throws ClassNotFoundException
+     * @throws IOException
+     */
+    private void handleRead(Metadata metadata, ObjectOutputStream stream) throws ClassNotFoundException, IOException {
+        String fileName = "./node-1/" + metadata.getFragmentName();
+        Format reader = metadata.getFormat() == Type.KV ? new KVFormatS(fileName) : new LineFormatS(fileName);
+        reader.open(Format.OpenMode.R);
+        while (true) {
+            KV record = (KV) reader.read();
+            System.out.println(record);
+            stream.writeObject(record);
+            if (record == null) {
+                break;
+            }
+        }
+        reader.close();
     }
 
+    /**
+     * Traite une requête d'écriture.
+     *
+     * @param metadata Informations sur le fichier à écrire
+     * @param stream   Flux lisible pour recevoir les lignes
+     * @throws ClassNotFoundException
+     * @throws IOException
+     */
     private void handleWrite(Metadata metadata, ObjectInputStream stream) throws ClassNotFoundException, IOException {
-        Type type = (Type) stream.readObject();
         String fileName = "./node-1/" + metadata.getFragmentName();
-        Format writer = type == Type.KV ? new KVFormat(fileName) : new LineFormat(fileName);
+        Format writer = metadata.getFormat() == Type.KV ? new KVFormat(fileName) : new LineFormat(fileName);
         writer.open(Format.OpenMode.W);
         while (true) {
             KV record = (KV) stream.readObject();
@@ -109,9 +150,20 @@ public class HdfsServer {
         writer.close();
     }
 
+    /**
+     * Traite une requête de suppression.
+     *
+     * @param metadata Informations sur le fichier à supprimer
+     * @throws ClassNotFoundException
+     * @throws IOException
+     */
     private void handleDelete(Metadata metadata) throws ClassNotFoundException, IOException {
+        // TODO
     }
 
+    /**
+     * Lance un serveur dans le dossier courant avec les paramètres par défaut.
+     */
     public static void main(String[] args) throws IOException {
         new HdfsServer();
     }
