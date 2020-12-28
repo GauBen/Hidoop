@@ -65,8 +65,12 @@ public class Job implements JobInterfaceX {
         for (int i = 0; i < this.numberOfMaps; i++) {
             try {
                 nodes[i] = ((Worker) Naming.lookup(Job.serverAddress + ":" + Job.port + "/Node" + i));
-            } catch (MalformedURLException | RemoteException | NotBoundException e) {
-                e.printStackTrace();
+            } catch (NotBoundException e) {
+                System.out.println("Le node " + i + " n'a pas ete trouve dans le registry");
+                return;
+            } catch (MalformedURLException | RemoteException e) {
+                System.out.println("Le rmi registry n'est pas disponible sur " + Job.serverAddress + ":" + Job.port);
+                return;
             }
         }
 
@@ -133,7 +137,7 @@ public class Job implements JobInterfaceX {
             HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Impossible to create the temporary result file.");
         }
 
     }
@@ -168,6 +172,11 @@ public class Job implements JobInterfaceX {
 
         // Do the reduce
         this.mapReduce.reduce(iFormat, oFormat);
+
+        // Delete temp file
+        System.out.println("Let's delete temporary files");
+        HdfsClient.HdfsDelete(getTempFileName());
+        //TODO : a tester quand ce sera implemente
     }
 
     public Format getFormatFromType(Format.Type type, String fName) {

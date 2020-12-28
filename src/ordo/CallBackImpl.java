@@ -30,6 +30,11 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
 
     }
 
+    @Override
+    public void error(String nodeID, String texte) {
+        System.out.println("Erreur du node " + nodeID + "\n" + texte);
+    }
+
     public Semaphore getSemaphore() {
         return semaphore;
     }

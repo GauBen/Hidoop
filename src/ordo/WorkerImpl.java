@@ -4,6 +4,7 @@ import formats.Format;
 import formats.Format.OpenMode;
 import map.Mapper;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -16,12 +17,12 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     private static final long serialVersionUID = 1L;
 
+    public String id;
 
     /**
      * Settings for RMI
      */
     static String serverAddress = "//localhost";
-
 
     protected WorkerImpl() throws RemoteException {
         super();
@@ -39,13 +40,15 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                 usage();
                 return;
             }
-            Worker worker = new WorkerImpl();
-            String id = args[0]; // Id has to be a number between 0 and the total number of nodes minus 1
+            WorkerImpl worker = new WorkerImpl();
+            worker.id = args[0]; // Id has to be a number between 0 and the total number of nodes minus 1
 
-            Naming.rebind(WorkerImpl.serverAddress + ":" + WorkerImpl.port + "/Node" + id, worker);
+            Naming.rebind(WorkerImpl.serverAddress + ":" + WorkerImpl.port + "/Node" + worker.id, worker);
             System.out.println("Worker" + args[0] + " bound in registry");
 
-        } catch (RemoteException | MalformedURLException e) {
+        } catch (RemoteException e) {
+            System.out.println("Il semble que le rmiregistry ne contienne pas les classes nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
+        } catch (MalformedURLException e) {
             e.printStackTrace();
         }
     }
@@ -53,20 +56,50 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
     @Override
     public void runMap(Mapper m, Format reader, Format writer, CallBack cb) throws RemoteException {
 
-        System.out.println("Voici le nom de mon fragment a ouvrir" + reader.getFname());
+        System.out.println("Voici le nom de mon fragment a ouvrir " + reader.getFname());
+
+        Thread thread = new Thread() {
+            public void run() {
 
 
-        // Open files
-        reader.open(OpenMode.R);
-        writer.open(OpenMode.W);
+                File file = new File(reader.getFname());
 
-        m.map(reader, writer);
+                if (file.isFile() && !file.isDirectory()) {
+                    //OK
+                    reader.open(OpenMode.R);
+                    writer.open(OpenMode.W);
 
-        try {
-            cb.done();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
+                    m.map(reader, writer);
+
+                    try {
+                        try {
+                            cb.done();
+                        } catch (RemoteException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+
+                } else { // The file to read doesn't exist on the node
+                    try {
+                        cb.error(id, "Fichier a lire non trouve !");
+                    } catch (RemoteException e1) {
+                        e1.printStackTrace();
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+
+
+            }
+        };
+
+        thread.start();
+
 
     }
 
