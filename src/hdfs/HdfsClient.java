@@ -11,12 +11,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 import formats.Format;
 import formats.KV;
 import formats.KVFormatS;
 import formats.LineFormatS;
 import formats.Format.Type;
+import hdfs.HdfsNameServer.Action;
 
 /**
  * Un client HDFS, qui distribue des fragments de fichiers aux noeuds HDFS.
@@ -24,18 +26,12 @@ import formats.Format.Type;
 public class HdfsClient {
 
     /**
-     * Les trois actions possibles dans HDFS.
-     */
-    public enum Action {
-        READ, WRITE, DELETE
-    }
-
-    /**
      * Nom des fragements sauvegardés sur les noeuds.
      *
      * @param fileName Nom du fichier
      * @return
      */
+    @Deprecated
     public static String getFragmentName(String fileName) {
         return new File(fileName).getName() + ".part";
     }
@@ -57,7 +53,7 @@ public class HdfsClient {
         try {
 
             // Connexion au premier noeud
-            Socket sock = new Socket("127.0.0.1", 8123);
+            Socket sock = newNameServerSocket();
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
 
@@ -103,7 +99,7 @@ public class HdfsClient {
         try {
 
             // Connexion au premier noeud
-            Socket sock = new Socket("127.0.0.1", 8123);
+            Socket sock = newNameServerSocket();
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
 
             // On l'informe qu'on veut écrire un fichier
@@ -114,15 +110,17 @@ public class HdfsClient {
             // On envoie le fichier
             while (true) {
                 KV line = lf.read();
-                System.out.println(line);
                 out.writeObject(line);
                 if (line == null) {
                     break;
                 }
             }
 
+            Object response = new ObjectInputStream(sock.getInputStream()).readObject();
+            assert response == Action.PONG;
             sock.close();
-        } catch (IOException e) {
+
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
@@ -134,6 +132,13 @@ public class HdfsClient {
      */
     public static void HdfsDelete(String hdfsFname) {
         // TODO
+    }
+
+    /**
+     * @return Une socket ouverte sur le NameServer HDFS
+     */
+    private static Socket newNameServerSocket() throws UnknownHostException, IOException {
+        return new Socket("127.0.0.1", HdfsNameServer.DEFAULT_PORT);
     }
 
     /**

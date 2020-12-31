@@ -1,0 +1,529 @@
+/**
+ * HDFS - Hidoop Distributed File System.
+ *
+ * Serveur développé par Théo Petit et Gautier Ben Aïm.
+ */
+
+package hdfs;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import formats.KV;
+
+/**
+ * Serveur HDFS, capable d'initier des opérations distribuées de lecture,
+ * d'écriture et de suppression sur les noeuds.
+ */
+public class HdfsNameServer {
+
+    /**
+     * Port par défaut du serveur.
+     */
+    final public static int DEFAULT_PORT = 51200;
+
+    /**
+     * Temps (en ms) entre deux pings.
+     */
+    final public static int PING_INTERVAL = 5000;
+
+    /**
+     * Nombre de lignes stockées dans le buffer.
+     */
+    final public static int BUFFER_SIZE = 128;
+
+    /**
+     * Les actions possibles dans HDFS.
+     */
+    public enum Action {
+        /** Reconstition d'un fichier fragmenté. */
+        READ,
+        /** Sauvegarde d'un fichier fragmenté. */
+        WRITE,
+        /** Suppression d'un fichier fragmenté. */
+        DELETE,
+        /** Requête d'un nouveau noeud à initialiser. */
+        NEW_NODE,
+        /** Requête de vérification d'activité. */
+        PING,
+        /** Réponse de vérification d'activité. */
+        PONG,
+        /** Le ping provient d'un noeud inconnu. */
+        UNKNOWN_NODE,
+    }
+
+    /**
+     * Serveur qui traite les requêtes HDFS.
+     */
+    private ServerSocket server;
+
+    /**
+     * Liste des noeuds.
+     */
+    private volatile List<URI> nodes = new ArrayList<>();
+
+    /**
+     * Liste des fichiers.
+     */
+    private volatile Map<String, Map<Integer, List<URI>>> files = new HashMap<>();
+
+    /**
+     * Initialise un noeud HDFS sur le port par défaut 51200.
+     */
+    public HdfsNameServer() {
+        this(DEFAULT_PORT);
+    }
+
+    /**
+     * Initialise un noeud HDFS
+     */
+    public HdfsNameServer(int port) {
+        try {
+            this.server = new ServerSocket(port);
+            System.out.println();
+            System.out.println("Initialisation :");
+            System.out.println("* Serveur principal lancé sur le port " + this.server.getLocalPort());
+            System.out.println("* Ctrl+C pour arrêter le serveur");
+            System.out.println();
+            this.runPinger();
+            this.runListener();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Impossible de lancer le serveur, le port est peut-être occupé.");
+        }
+    }
+
+    /**
+     * Crée un thread qui vérifie que les noeuds sont actifs.
+     */
+    private void runPinger() {
+        HdfsNameServer self = this;
+        class Pinger implements Runnable {
+            @Override
+            public void run() {
+                while (true) {
+                    self.sendPing();
+                    try {
+                        Thread.sleep(PING_INTERVAL);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        }
+        new Thread(new Pinger()).start();
+    }
+
+    /**
+     * Envoie un ping à tous les noeuds.
+     */
+    public void sendPing() {
+
+        // Nombre de noeuds supprimés
+        int removed = 0;
+
+        for (URI uri : new ArrayList<>(this.nodes)) {
+
+            try {
+
+                Socket sock = new Socket(uri.getHost(), uri.getPort());
+                sock.setSoTimeout(1000);
+                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
+
+                // On envoie ping et on attend pong
+                outputStream.writeObject(Action.PING);
+                if (inputStream.readObject() != Action.PONG) {
+                    throw new SocketException("Noeud déconnecté.");
+                }
+
+            } catch (IOException | ClassNotFoundException e) {
+
+                System.out.println("Ping : noeud " + uri + " déconnecté...");
+
+                this.removeNode(uri);
+                removed++;
+
+            }
+
+        }
+
+        // S'il y a plus d'un noeud supprimé on affiche la liste des fichiers
+        if (removed > 0) {
+            this.printFiles();
+        }
+
+    }
+
+    /**
+     * Supprime la référence à un noeud dans la liste des noeuds et des fichiers.
+     *
+     * @param uri Une adresse de la forme hdfs://adresse:port
+     */
+    private void removeNode(URI uri) {
+
+        this.nodes.remove(uri);
+
+        for (Map<Integer, List<URI>> map : this.files.values()) {
+            for (List<URI> list : map.values()) {
+                list.remove(uri);
+            }
+        }
+
+    }
+
+    /**
+     * Lance l'attente des requêtes entrantes.
+     */
+    private void runListener() {
+        while (true) {
+            try {
+                // On attend une connexion au serveur HDFS
+                Socket sock = this.server.accept();
+                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
+                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+
+                // On traite la requête entrante
+                this.handleRequest(sock, inputStream, outputStream);
+            } catch (IOException | IllegalArgumentException e) {
+                e.printStackTrace();
+                System.out.println("Une connexion a échoué.");
+            }
+        }
+    }
+
+    /**
+     * On traite les chaussettes ouvertes.
+     *
+     * @param sock         Socket connectée
+     * @param inputStream  Flux d'objets entrants
+     * @param outputStream Flux d'objets sortants
+     */
+    private void handleRequest(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+        try {
+            Action action = (Action) inputStream.readObject();
+
+            // On filtre l'action demandée
+            if (action == Action.PING) {
+                this.handlePing(sock, inputStream, outputStream);
+            } else if (action == Action.READ) {
+                this.handleRead(sock, inputStream, outputStream);
+            } else if (action == Action.WRITE) {
+                this.handleWrite(sock, inputStream, outputStream);
+            } else if (action == Action.DELETE) {
+                this.handleDelete(sock, inputStream, outputStream);
+            } else if (action == Action.NEW_NODE) {
+                this.handleNewNode(sock, inputStream, outputStream);
+            } else {
+                throw new IllegalArgumentException("Action invalide.");
+            }
+
+        } catch (ClassNotFoundException | IOException e) {
+            e.printStackTrace();
+            System.out.println("Données invalides, connexion annulée.");
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            System.out.println("Problème d'adresse d'un noeud");
+        }
+    }
+
+    /**
+     * Réceptionne un ping. Si le noeud est connu, rien ne change, sinon on demande
+     * au noeud de s'initialiser.
+     */
+    private void handlePing(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws IOException, ClassNotFoundException, URISyntaxException {
+
+        String host = sock.getInetAddress().getHostAddress();
+        int port = (Integer) inputStream.readObject();
+        URI uri = new URI("hdfs://" + host + ":" + port);
+
+        // Le noeud est-il connu ?
+        if (this.nodes.stream().anyMatch(node -> node.equals(uri))) {
+            // On envoie pong
+            outputStream.writeObject(Action.PONG);
+        } else {
+            // On informe le noeud qu'il n'est pas initialisé
+            System.out.println("Pong : Le ping provient d'un noeud inconnu...");
+            outputStream.writeObject(Action.UNKNOWN_NODE);
+        }
+
+    }
+
+    /**
+     * Traite une requête de lecture.
+     */
+    private void handleRead(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws ClassNotFoundException, IOException {
+
+        Metadata metadata = (Metadata) inputStream.readObject();
+        if (!this.isFileComplete(metadata.getName())) {
+            throw new RuntimeException("Fichier incomplet");
+        }
+
+        Map<Integer, List<URI>> file = this.files.get(metadata.getName());
+        for (int fragment : file.keySet()) {
+            URI node = file.get(fragment).get(0);
+            Socket nodeSock = new Socket(node.getHost(), node.getPort());
+
+            ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream());
+
+            nodeOutputStream.writeObject(Action.READ);
+            nodeOutputStream.writeObject(metadata.getName());
+            nodeOutputStream.writeObject(fragment);
+
+            ObjectInputStream nodeInputStream = new ObjectInputStream(nodeSock.getInputStream());
+
+            while (true) {
+                KV record = (KV) nodeInputStream.readObject();
+                if (record == null) {
+                    break;
+                }
+                outputStream.writeObject(record);
+            }
+
+            nodeOutputStream.writeObject(Action.PONG);
+
+        }
+
+        outputStream.writeObject(null);
+        assert inputStream.readObject() == Action.PONG;
+
+    }
+
+    /**
+     * Traite une requête d'écriture.
+     */
+    private void handleWrite(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws ClassNotFoundException, IOException {
+
+        if (this.nodes.isEmpty()) {
+            throw new RuntimeException("0 noeud");
+        }
+
+        Metadata metadata = (Metadata) inputStream.readObject();
+
+        boolean lastPart = false;
+        int fragment = 0;
+        KV[] buffer = new KV[BUFFER_SIZE];
+
+        KV firstRecord = (KV) inputStream.readObject();
+
+        if (firstRecord == null) {
+            return;
+        }
+
+        while (!lastPart) {
+
+            buffer[0] = firstRecord;
+
+            for (int i = 1; i < BUFFER_SIZE; i++) {
+
+                KV record = (KV) inputStream.readObject();
+                buffer[i] = record;
+                // System.out.println(record);
+
+                if (record == null) {
+                    lastPart = true;
+                    break;
+                }
+
+            }
+
+            if (!lastPart) {
+                firstRecord = (KV) inputStream.readObject();
+                if (firstRecord == null) {
+                    lastPart = true;
+                }
+            }
+
+            this.sendFragment(metadata.getName(), fragment, lastPart, buffer);
+
+            fragment++;
+        }
+        // writer.close();
+
+        outputStream.writeObject(Action.PONG);
+    }
+
+    /**
+     * Envoie un fragment au noeud
+     *
+     * @param fragment
+     * @param lastPart
+     * @param buffer
+     */
+    private void sendFragment(String fileName, int fragment, boolean lastPart, KV[] buffer) {
+
+        // Nombre de noeuds sur lesquels chaque fragment est stocké
+        // La fonctionnalité est implémentée, bien qu'inaccessible
+        final int REP = 1;
+
+        // Permutation
+        URI[] nodes = Arrays.copyOf(this.nodes.toArray(), this.nodes.size(), URI[].class);
+        int len = nodes.length;
+        for (int i = 0; i < REP; i++) {
+            URI tmp = nodes[i];
+            nodes[i] = nodes[fragment % (len - i) + i];
+            nodes[fragment % (len - i) + i] = tmp;
+        }
+
+        List<URI> nodes2 = new ArrayList<>(Arrays.asList(Arrays.copyOfRange(nodes, 0, REP)));
+
+        // Envoi
+        for (URI node : nodes2) {
+
+            try {
+                Socket sock;
+                sock = new Socket(node.getHost(), node.getPort());
+                sock.setSoTimeout(1000);
+                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
+
+                outputStream.writeObject(Action.WRITE);
+                outputStream.writeObject(fileName);
+                outputStream.writeObject(fragment);
+                outputStream.writeObject(lastPart);
+                for (KV record : buffer) {
+                    if (record == null) {
+                        break;
+                    }
+                    outputStream.writeObject(record);
+                }
+                outputStream.writeObject(null);
+
+                if (inputStream.readObject() != Action.PONG) {
+                    throw new SocketException("Noeud déconnecté.");
+                }
+
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        // Enregistrement du noeud de chaque fragment
+        if (!this.files.containsKey(fileName))
+            this.files.put(fileName, new HashMap<>());
+
+        this.files.get(fileName).put(fragment, nodes2);
+
+    }
+
+    /**
+     * Traite une requête de suppression.
+     */
+    private void handleDelete(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws ClassNotFoundException, IOException {
+        // TODO
+    }
+
+    /**
+     * Traite une requête de nouveau noeud, en récupérant son port et la liste de
+     * ses fichiers
+     */
+    private void handleNewNode(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws IOException, ClassNotFoundException, URISyntaxException {
+
+        String host = sock.getInetAddress().getHostAddress();
+        int port = (int) inputStream.readObject();
+
+        System.out.println("Intialisation d'un nouveau noeud : " + host + ":" + port);
+
+        URI uri = new URI("hdfs://" + host + ":" + port);
+        this.removeNode(uri);
+        this.nodes.add(uri);
+
+        Object files = inputStream.readObject();
+
+        for (Entry<?, ?> entry : ((Map<?, ?>) files).entrySet()) {
+            String fileName = (String) entry.getKey();
+
+            if (!this.files.containsKey(fileName)) {
+                this.files.put((String) fileName, new HashMap<>());
+            }
+            Map<Integer, List<URI>> fragmentMap = this.files.get(fileName);
+
+            for (Entry<?, ?> entry2 : ((Map<?, ?>) entry.getValue()).entrySet()) {
+                int id = (int) entry2.getKey();
+                if (!fragmentMap.containsKey(id)) {
+                    fragmentMap.put(id, new ArrayList<>());
+                }
+
+                if (entry2.getValue() != null) {
+                    List<URI> socketList = fragmentMap.get(id);
+                    socketList.add(uri);
+                }
+            }
+
+        }
+
+        this.printFiles();
+
+    }
+
+    /**
+     * Affiche la liste des fichiers disponibles sur le réseau.
+     */
+    private void printFiles() {
+        System.out.println("Fichiers :");
+        boolean empty = true;
+        for (String fileName : this.files.keySet()) {
+            System.out.println(" * " + fileName + " : " + (this.isFileComplete(fileName) ? "complet" : "incomplet"));
+            empty = false;
+        }
+        if (empty) {
+            System.out.println(" (vide)");
+        }
+    }
+
+    /**
+     * Renvoie vrai si tous les fragments d'un fichier sont récupérables.
+     *
+     * @param fileName
+     * @return
+     */
+    public boolean isFileComplete(String fileName) {
+        if (!this.files.containsKey(fileName)) {
+            return false;
+        }
+        Map<Integer, List<URI>> fragmentMap = this.files.get(fileName);
+        int max = Collections.max(fragmentMap.keySet());
+        for (int i = 0; i <= max; i++) {
+            if (!fragmentMap.containsKey(i) || fragmentMap.get(i).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Interface CLI pour lancer un serveur.
+     */
+    public static void main(String[] args) throws IOException {
+        if (args.length > 0 && (args[0].equalsIgnoreCase("--help") || args[0].equalsIgnoreCase("-h")
+                || args[0].equals("-?") || args[0].equals("/?"))) {
+            System.out.println("Usage: HdfsNameServer <optional port>");
+            return;
+        }
+
+        int port = DEFAULT_PORT;
+        if (args.length == 1) {
+            port = Integer.parseInt(args[0]);
+        }
+        new HdfsNameServer(port);
+    }
+
+}
