@@ -243,6 +243,7 @@ public class HdfsNode {
         writer.close();
 
         outputStream.writeObject(Action.PONG);
+        this.scanDir();
 
     }
 
