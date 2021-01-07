@@ -194,6 +194,8 @@ public class HdfsNode {
             this.handleWrite(sock, inputStream, outputStream);
         } else if (action == Action.READ) {
             this.handleRead(sock, inputStream, outputStream);
+        } else if (action == Action.DELETE) {
+            this.handleDelete(sock, inputStream, outputStream);
         }
     }
 
@@ -228,9 +230,6 @@ public class HdfsNode {
         Format writer = new LineFormat(new File(this.nodeRoot, fileName).getAbsolutePath() + "." + fragment
                 + (lastPart ? ".final" : "") + ".part");
         writer.open(Format.OpenMode.W);
-        // String fileName = "./node-1/" + metadata.getFragmentName();
-        // Format writer = metadata.getFormat() == Type.KV ? new KVFormat(fileName) :
-        // new LineFormat(fileName);
 
         while (true) {
             KV record = (KV) inputStream.readObject();
@@ -245,6 +244,23 @@ public class HdfsNode {
         outputStream.writeObject(Action.PONG);
         this.scanDir();
 
+    }
+
+    private void handleDelete(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+        try {
+            String filename = (String) inputStream.readObject();
+            if (this.files.containsKey(filename)) {
+                for (File fragment : this.files.get(filename).values()) {
+                    if (fragment != null) {
+                        fragment.delete();
+                    }
+                }
+            }
+            this.files.remove(filename);
+            outputStream.writeObject(Action.PONG);
+        } catch (ClassNotFoundException | IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

@@ -67,6 +67,8 @@ public class HdfsNameServer {
         PONG,
         /** Le ping provient d'un noeud inconnu. */
         UNKNOWN_NODE,
+        /** On veut connaître la liste des fragments d'un fichier. */
+        LIST_FRAGMENTS
     }
 
     /**
@@ -459,7 +461,29 @@ public class HdfsNameServer {
      */
     private void handleDelete(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
             throws ClassNotFoundException, IOException {
-        // TODO
+        String filename = (String) inputStream.readObject();
+        for (URI uri : new ArrayList<>(this.nodes)) {
+
+            try {
+
+                Socket nodeSock = new Socket(uri.getHost(), uri.getPort());
+                ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
+                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
+
+                // On envoie le nom du fichier à delete
+                out.writeObject(Action.DELETE);
+                out.writeObject(filename);
+
+                if (in.readObject() != Action.PONG) {
+                    throw new SocketException("Noeud déconnecté.");
+                }
+
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        this.files.remove(filename);
+        outputStream.writeObject(Action.PONG);
     }
 
     /**

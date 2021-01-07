@@ -131,7 +131,44 @@ public class HdfsClient {
      * @param hdfsFname
      */
     public static void HdfsDelete(String hdfsFname) {
-        // TODO
+        try {
+            // Connexion au premier noeud
+            Socket sock = newNameServerSocket();
+            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+
+            // On l'informe qu'on veut supprimer un fichier
+            out.writeObject(Action.DELETE);
+            out.writeObject(hdfsFname);
+
+            Object response = new ObjectInputStream(sock.getInputStream()).readObject();
+            assert response == Action.PONG;
+            sock.close();
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Object listFragments(String hdfsFilename) {
+        try {
+            Socket sock = newNameServerSocket();
+            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+
+            // On l'informe qu'on veut la liste des fragments
+            out.writeObject(Action.LIST_FRAGMENTS);
+            out.writeObject(hdfsFilename);
+
+            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
+
+            Object lst = in.readObject();
+
+            out.writeObject(Action.PONG);
+            return lst;
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**
