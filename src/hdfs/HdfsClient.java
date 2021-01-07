@@ -12,6 +12,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import formats.Format;
 import formats.KV;
@@ -19,6 +21,7 @@ import formats.KVFormatS;
 import formats.LineFormatS;
 import formats.Format.Type;
 import hdfs.HdfsNameServer.Action;
+import hdfs.HdfsNameServer.FragmentInfo;
 
 /**
  * Un client HDFS, qui distribue des fragments de fichiers aux noeuds HDFS.
@@ -149,7 +152,7 @@ public class HdfsClient {
         }
     }
 
-    public static Object listFragments(String hdfsFilename) {
+    public static List<FragmentInfo> listFragments(String hdfsFilename) {
         try {
             Socket sock = newNameServerSocket();
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
@@ -160,7 +163,10 @@ public class HdfsClient {
 
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
 
-            Object lst = in.readObject();
+            List<FragmentInfo> lst = new ArrayList<>();
+            for (Object i : (List<?>) in.readObject()) {
+                lst.add((FragmentInfo) i);
+            }
 
             out.writeObject(Action.PONG);
             return lst;

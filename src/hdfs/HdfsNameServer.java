@@ -232,6 +232,8 @@ public class HdfsNameServer {
                 this.handleDelete(sock, inputStream, outputStream);
             } else if (action == Action.NEW_NODE) {
                 this.handleNewNode(sock, inputStream, outputStream);
+            } else if (action == Action.LIST_FRAGMENTS) {
+                this.handleListFragments(sock, inputStream, outputStream);
             } else {
                 throw new IllegalArgumentException("Action invalide.");
             }
@@ -563,6 +565,44 @@ public class HdfsNameServer {
             }
         }
         return true;
+    }
+
+    public class FragmentInfo {
+        public String filename;
+        public int id;
+        public boolean lastPart;
+        public URI node;
+
+        public FragmentInfo(String filename, int id, boolean lastPart, URI node) {
+            this.filename = filename;
+            this.id = id;
+            this.lastPart = lastPart;
+            this.node = node;
+        }
+
+        public String getFragmentName() {
+            return filename + "." + id + (lastPart ? ".final" : "") + ".part";
+        }
+    }
+
+    private void handleListFragments(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws ClassNotFoundException, IOException {
+        String filename = (String) inputStream.readObject();
+        if (!this.isFileComplete(filename)) {
+            outputStream.writeObject(null);
+            return;
+        }
+
+        List<FragmentInfo> list = new ArrayList<>();
+        Map<Integer, List<URI>> fragments = this.files.get(filename);
+        int lastFragment = Collections.max(fragments.keySet());
+        for (int id : fragments.keySet()) {
+            list.add(new FragmentInfo(filename, id, id == lastFragment, fragments.get(id).get(0)));
+        }
+
+        outputStream.writeObject(list);
+        assert inputStream.readObject() == Action.PONG;
+
     }
 
     /**
