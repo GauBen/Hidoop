@@ -6,27 +6,18 @@
 
 package hdfs;
 
+import formats.Format;
+import formats.Format.OpenMode;
+import formats.KV;
+import formats.KVFormatS;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.net.*;
+import java.util.*;
 import java.util.Map.Entry;
-
-import formats.Format;
-import formats.KV;
-import formats.KVFormatS;
-import formats.Format.OpenMode;
 
 /**
  * Serveur HDFS, capable d'initier des opérations distribuées de lecture,
@@ -567,7 +558,7 @@ public class HdfsNameServer {
         return true;
     }
 
-    public class FragmentInfo {
+    public static class FragmentInfo {
         public String filename;
         public int id;
         public boolean lastPart;
