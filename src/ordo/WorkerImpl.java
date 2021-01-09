@@ -5,6 +5,7 @@ import formats.Format.OpenMode;
 import map.Mapper;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -27,12 +28,23 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     static int port = 1; // Offset du port
 
-    public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs) throws RemoteException {
+    public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
+            throws RemoteException {
         super();
 
         try {
-            Naming.lookup(hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")"); //TODO: remplacer la convention par un appel de fonction
-            System.out.println("Attention, cet ID a déjà été enregistré dans le RMIRegistry. Est-ce un doublon ou un redemarrage ?");
+            Naming.lookup(
+                    hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")"); // TODO:
+            // remplacer
+            // la
+            // convention
+            // par
+            // un
+            // appel
+            // de
+            // fonction
+            System.out.println(
+                    "Attention, cet ID a déjà été enregistré dans le RMIRegistry. Est-ce un doublon ou un redemarrage ?");
 
         } catch (NotBoundException e) {
             // OK
@@ -43,18 +55,20 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         }
 
         try {
-            Naming.rebind(hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")", this);
-            System.out.println("Worker" + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")" + " bound in registry");
+            Naming.rebind(
+                    hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")",
+                    this);
+            System.out.println(
+                    "Worker" + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")" + " bound in registry");
 
         } catch (RemoteException e) {
-            System.out.println("Il semble que le rmiregistry ne contienne pas les classes nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
+            System.out.println(
+                    "Il semble que le rmiregistry ne contienne pas les classes nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
 
     }
-
-
 
     public static void usage() {
         System.out.println("Usage : WorkerImpl <hostDuRmi> <portDuRmi> <hostDistantDuNoeudHdfs> <portDuNodeHdfs>");
@@ -101,6 +115,15 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
         Thread thread = new Thread() {
             public void run() {
+
+                System.out.println("Creating a temporary file... " + writer.getFname());
+                File tempResultFile = new File(writer.getFname());
+                try {
+                    tempResultFile.createNewFile();
+                } catch (IOException e2) {
+                    // TODO Auto-generated catch block
+                    e2.printStackTrace();
+                }
 
 
                 File file = new File(reader.getFname());

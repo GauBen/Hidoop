@@ -6,14 +6,17 @@ import formats.Format.OpenMode;
 import formats.KVFormat;
 import formats.LineFormat;
 import hdfs.HdfsClient;
+import hdfs.HdfsNameServer.FragmentInfo;
 import map.MapReduce;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.List;
 
 public class Job implements JobInterfaceX {
     // TODO
@@ -21,8 +24,8 @@ public class Job implements JobInterfaceX {
     /**
      * Settings for RMI
      */
-    static String serverAddress = "//localhost";
-    static int port = 4000;
+    static String rmiServerAddress = "//localhost";
+    static int rmiPort = 4000;
     MapReduce mapReduce;
     Format.Type inputFormat;
     String inputFname;
@@ -57,31 +60,14 @@ public class Job implements JobInterfaceX {
     public void startJob(MapReduce mr) {
         this.mapReduce = mr;
 
-        // Store RMI connections
-        Worker[] nodes = new Worker[this.numberOfMaps];
+        // Get all fragments
 
-        // Connect to all node
-        // TODO : ATTENTION AUX NOMS DES NODES
-        for (int i = 0; i < this.numberOfMaps; i++) {
-            try {
-                nodes[i] = ((Worker) Naming.lookup(Job.serverAddress + ":" + Job.port + "/Node" + i));
-            } catch (NotBoundException e) {
-                System.out.println("Le node " + i + " n'a pas ete trouve dans le registry");
-                return;
-            } catch (MalformedURLException | RemoteException e) {
-                System.out.println("Le rmi registry n'est pas disponible sur " + Job.serverAddress + ":" + Job.port);
-                return;
-            }
-        }
+        List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); //TODO : fix sur intellij
 
 
-        // Set the Format
-        Format iFormat;
-        Format oFormat;
+        this.numberOfMaps = fragments.size(); // One fragment = one runmap
 
-        // Create temp result file
-        this.createTempFile();
-
+        // Define the callback used to know when a worker is done
         CallBackImpl callBack = null;
         try {
             callBack = new CallBackImpl(this.getNumberOfMaps());
@@ -90,32 +76,58 @@ public class Job implements JobInterfaceX {
             return;
         }
 
+        // Connect to all node
+        // TODO : ATTENTION AUX NOMS DES NODES
         int n = 0;
-        for (Worker node : nodes) {
+        for (FragmentInfo fragment : fragments) {
+
+            URI addresseDuFragment = fragment.node;
+
+
             try {
-                //TODO : ne pas hardcoder la convention de nom des dossiers de node
-                iFormat = this.getFormatFromType(this.inputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(inputFname));
-                oFormat = this.getFormatFromType(this.outputFormat, "node-" + (n + 1) + "/" + HdfsClient.getFragmentName(getTempFileName()));
-                node.runMap(mr, iFormat, oFormat, callBack);
+                // Get the worker associated with the HDFS (and thus with the fragment)
+                Worker worker = ((Worker) Naming.lookup(Job.rmiServerAddress + ":" + Job.rmiPort + "/Node" + "(" + addresseDuFragment.getHost() + " : " + addresseDuFragment.getPort() + ")"));
+
+
+                // Set the Format
+                Format iFormat = this.getFormatFromType(this.inputFormat, fragment.getAbsolutePath() + fragment.getFragmentName()); //TODO : tester quand la méthode sera définie
+
+
+                FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart, fragment.node);
+
+                Format oFormat = this.getFormatFromType(this.outputFormat, fragment.getAbsolutePath() + fragmentDuResultat.getFragmentName());
+
+
+                worker.runMap(mr, iFormat, oFormat, callBack);
+
 
                 n++;
-            } catch (RemoteException e) {
-                e.printStackTrace();
+
+
+            } catch (NotBoundException e) {
+                System.out.println("Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
+                return;
+            } catch (MalformedURLException | RemoteException e) {
+                System.out.println("Le rmi registry n'est pas disponible sur " + Job.rmiPort + ":" + Job.rmiPort);
+                return;
             }
         }
+
 
 
         try {
             // We wait for all nodes to call CallBack
             callBack.getSemaphore().acquire();
 
+            HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete fait
+
             // When callback frees semaphores, all nodes are done
             this.doReduceJob();
+
 
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
 
     }
 
@@ -125,9 +137,7 @@ public class Job implements JobInterfaceX {
     public void createTempFile() {
 
         try {
-            System.out.println("Creating a temporary file... " + getTempFolderPath() + this.getTempFileName());
-            File file = new File(getTempFolderPath() + this.getTempFileName());
-            file.createNewFile();
+
             // use HDFS to create a file
             Format format = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
 
@@ -143,7 +153,7 @@ public class Job implements JobInterfaceX {
     }
 
     public String getTempFileName() {
-        return this.outputFname + "_temp";
+        return this.outputFname + "_result_temp";
     }
 
     public void doReduceJob() {
