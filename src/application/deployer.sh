@@ -1,23 +1,22 @@
 #!/bin/bash
 USERNAME=someUser
-HOSTS="pikachu carapuce dracaufeu salameche"
+HOSTS="pikachu.enseeiht.fr carapuce.enseeiht.fr salameche.enseeiht.fr"
 
 
 CURRENT_HOST=$HOSTNAME # Le nom du serveur qui héberge le HdfsServer et le rmiserver ATTENTION a verifier si c'est defini sur les pc de l'enseeiht
 NameserverPort=30000
 RmiserverPort=4000
 
-# Le script execute sur chaque machine - adresse du nameserver, port du nameserver, adresse du RMI, port du RMI
-SCRIPT="cd Hidoop/NodeHDFS && java BiNode.class" ${CURRENT_HOST} ${NameserverPort} ${CURRENT_HOST} ${RmiserverPort}
+# Le script execute sur chaque machine - adresse du nameserver, port du nameserver, nom du dossier dans lequel y'a les fichiers de Hdfs,adresse du RMI, port du RMI
+SCRIPT="cd Hidoop/NodeHDFS && java BiNode.class" ${CURRENT_HOST} ${NameserverPort} "files" ${CURRENT_HOST} ${RmiserverPort}
 
 
 # On demarre le RMI
-&rmiserver ${RmiserverPort} # On fait un RMI server dans le fond
+rmiregistry ${RmiserverPort} & # On fait un RMI registry en tache de fond
 
-"java HdfsServer.class" # TODO : ajouter les arguments
-
+java "HdfsServer.class" # TODO : ajouter les arguments
 
 # Execution des commandes sur les machines distantes
 for HOSTNAME in ${HOSTS} ; do
-    ssh -l ${USERNAME} ${HOSTNAME} "${SCRIPT}"
+    ssh -l ${USERNAME} -p $mypassword ${HOSTNAME} "${SCRIPT}"
 done
