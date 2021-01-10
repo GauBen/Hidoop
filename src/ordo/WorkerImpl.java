@@ -77,7 +77,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     public static void main(String[] args) {
 
-        if (args.length < 4) {
+        if (args.length != 4) {
             usage();
             return;
         }
