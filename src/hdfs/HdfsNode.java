@@ -1,22 +1,18 @@
 package hdfs;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
-
 import formats.Format;
 import formats.KV;
 import formats.LineFormat;
 import formats.LineFormatS;
 import hdfs.HdfsNameServer.Action;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HdfsNode {
 
@@ -48,7 +44,7 @@ public class HdfsNode {
     /**
      * Initialise un noeud connecté au NameServer host:port
      */
-    HdfsNode(String host, int port, String nodeRoot) {
+    public HdfsNode(String host, int port, String nodeRoot) {
         this.nameServerHost = host;
         this.nameServerPort = port;
         this.nodeRoot = new File(nodeRoot).getAbsolutePath();
