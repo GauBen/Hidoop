@@ -42,6 +42,11 @@ public class HdfsNode {
     private Map<String, Map<Integer, File>> files;
 
     /**
+     * Adresse du noeud depuis le NameServer.
+     */
+    private String externalHostname;
+
+    /**
      * Initialise un noeud connecté au NameServer host:port
      */
     public HdfsNode(String host, int port, String nodeRoot) {
@@ -62,7 +67,6 @@ public class HdfsNode {
 
         // On contacte le NameServer
         try {
-            System.out.println("Contact...");
             this.initNode();
         } catch (RuntimeException e) {
             System.out.println(e.getMessage());
@@ -90,9 +94,12 @@ public class HdfsNode {
 
             outputStream.writeObject(Action.NEW_NODE);
             outputStream.writeObject(this.server.getLocalPort());
+            outputStream.writeObject(this.nodeRoot);
             outputStream.writeObject(this.files);
 
-        } catch (IOException | AssertionError e) {
+            this.externalHostname = (String) new ObjectInputStream(sock.getInputStream()).readObject();
+
+        } catch (IOException | AssertionError | ClassNotFoundException e) {
             throw new RuntimeException("Le NameServer n'est pas joignable.");
         }
 
@@ -192,6 +199,8 @@ public class HdfsNode {
             this.handleRead(sock, inputStream, outputStream);
         } else if (action == Action.DELETE) {
             this.handleDelete(sock, inputStream, outputStream);
+        } else if (action == Action.FORCE_RESCAN) {
+            this.handleForceRescan(sock, inputStream, outputStream);
         }
     }
 
@@ -260,6 +269,17 @@ public class HdfsNode {
     }
 
     /**
+     * On envoie la liste des fichiers.
+     *
+     * @throws IOException
+     */
+    private void handleForceRescan(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+            throws IOException {
+        this.scanDir();
+        outputStream.writeObject(this.files);
+    }
+
+    /**
      * Lance le service de vérification de l'activité du NameServer.
      */
     private void runPinger() {
@@ -304,6 +324,20 @@ public class HdfsNode {
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Ping : Le NameServer n'est pas joignable.");
         }
+    }
+
+    /**
+     * Getter du serveur d'écoute.
+     */
+    public ServerSocket getServer() {
+        return this.server;
+    }
+
+    /**
+     * Getter du nom d'hôte du noeud vu depuis le NameServer.
+     */
+    public String getExternalHostname() {
+        return this.externalHostname;
     }
 
     /**

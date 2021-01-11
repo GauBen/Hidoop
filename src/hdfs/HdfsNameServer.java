@@ -59,7 +59,9 @@ public class HdfsNameServer {
         /** Le ping provient d'un noeud inconnu. */
         UNKNOWN_NODE,
         /** On veut connaître la liste des fragments d'un fichier. */
-        LIST_FRAGMENTS
+        LIST_FRAGMENTS,
+        /** On veut mettre à jour la liste des fichiers. */
+        FORCE_RESCAN
     }
 
     /**
@@ -71,6 +73,11 @@ public class HdfsNameServer {
      * Liste des noeuds.
      */
     private volatile List<URI> nodes = new ArrayList<>();
+
+    /**
+     * Liste des racines des noeuds.
+     */
+    private Map<URI, String> roots = new HashMap<>();
 
     /**
      * Liste des fichiers.
@@ -172,6 +179,7 @@ public class HdfsNameServer {
     private void removeNode(URI uri) {
 
         this.nodes.remove(uri);
+        this.roots.remove(uri);
 
         for (Map<Integer, List<URI>> map : this.files.values()) {
             for (List<URI> list : map.values()) {
@@ -225,6 +233,8 @@ public class HdfsNameServer {
                 this.handleNewNode(sock, inputStream, outputStream);
             } else if (action == Action.LIST_FRAGMENTS) {
                 this.handleListFragments(sock, inputStream, outputStream);
+            } else if (action == Action.FORCE_RESCAN) {
+                this.handleForceRescan(sock, inputStream, outputStream);
             } else {
                 throw new IllegalArgumentException("Action invalide.");
             }
@@ -488,15 +498,32 @@ public class HdfsNameServer {
 
         String host = sock.getInetAddress().getHostAddress();
         int port = (int) inputStream.readObject();
+        String root = (String) inputStream.readObject();
 
         System.out.println("Intialisation d'un nouveau noeud : " + host + ":" + port);
 
         URI uri = new URI("hdfs://" + host + ":" + port);
         this.removeNode(uri);
         this.nodes.add(uri);
+        this.roots.put(uri, root);
 
+        // On enregistre
         Object files = inputStream.readObject();
+        this.registerFragments(uri, files);
 
+        outputStream.writeObject(host);
+
+        this.printFiles();
+
+    }
+
+    /**
+     * Enregistre les fragments reçus
+     *
+     * @param uri   Noeud emetteur
+     * @param files Objet reçu
+     */
+    private void registerFragments(URI uri, Object files) {
         for (Entry<?, ?> entry : ((Map<?, ?>) files).entrySet()) {
             String fileName = (String) entry.getKey();
 
@@ -516,11 +543,7 @@ public class HdfsNameServer {
                     socketList.add(uri);
                 }
             }
-
         }
-
-        this.printFiles();
-
     }
 
     /**
@@ -563,16 +586,22 @@ public class HdfsNameServer {
         public int id;
         public boolean lastPart;
         public URI node;
+        private String root;
 
-        public FragmentInfo(String filename, int id, boolean lastPart, URI node) {
+        public FragmentInfo(String filename, int id, boolean lastPart, URI node, String root) {
             this.filename = filename;
             this.id = id;
             this.lastPart = lastPart;
             this.node = node;
+            this.root = root;
         }
 
         public String getFragmentName() {
             return filename + "." + id + (lastPart ? ".final" : "") + ".part";
+        }
+
+        public String getAbsolutePath() {
+            return new File(this.root, this.getFragmentName()).getAbsolutePath();
         }
     }
 
@@ -588,12 +617,40 @@ public class HdfsNameServer {
         Map<Integer, List<URI>> fragments = this.files.get(filename);
         int lastFragment = Collections.max(fragments.keySet());
         for (int id : fragments.keySet()) {
-            list.add(new FragmentInfo(filename, id, id == lastFragment, fragments.get(id).get(0)));
+            URI node = fragments.get(id).get(0);
+            list.add(new FragmentInfo(filename, id, id == lastFragment, node, this.roots.get(node)));
         }
 
         outputStream.writeObject(list);
         assert inputStream.readObject() == Action.PONG;
 
+    }
+
+    /**
+     * Traite une demande de mise à jour de la liste des fichiers.
+     */
+    private void handleForceRescan(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+        this.files = new HashMap<>();
+
+        for (URI node : this.nodes) {
+            try {
+                Socket nodeSock = new Socket(node.getHost(), node.getPort());
+                ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
+                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
+
+                out.writeObject(Action.FORCE_RESCAN);
+                this.registerFragments(node, in.readObject());
+
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            outputStream.writeObject(Action.PONG);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        this.printFiles();
     }
 
     /**

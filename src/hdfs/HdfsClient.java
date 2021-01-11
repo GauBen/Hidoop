@@ -178,6 +178,25 @@ public class HdfsClient {
     }
 
     /**
+     * Provoque un rafraichissement de la liste des fichiers.
+     */
+    public static void requestRefresh() {
+        try {
+            Socket sock = newNameServerSocket();
+            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
+
+            // On force le rafraîchissement du catalogue
+            out.writeObject(Action.FORCE_RESCAN);
+
+            assert Action.PONG == new ObjectInputStream(in).readObject();
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * @return Une socket ouverte sur le NameServer HDFS
      */
     private static Socket newNameServerSocket() throws UnknownHostException, IOException {
@@ -199,6 +218,9 @@ public class HdfsClient {
             }
 
             switch (args[0]) {
+                case "rescan":
+                    requestRefresh();
+                    break;
                 case "read":
                     HdfsRead(args[1], args.length < 3 ? null : args[2]);
                     break;

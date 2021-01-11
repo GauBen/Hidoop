@@ -24,9 +24,13 @@ public class BiNode {
         // Separate thread for the Hidoop node
         Thread thread = new Thread() {
             public void run() {
-
-                Worker hidoopNode = new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
-                        hdfsNode.getServer().getPort());
+                try {
+                    Worker hidoopNode = new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
+                            hdfsNode.getServer().getLocalPort());
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    System.out.println("Echec du lancement du worker");
+                }
 
             }
 
