@@ -71,7 +71,6 @@ public class LineFormatS implements Format {
     }
 
     public void write(KV record) {
-        KV kv = new KV();
         try {
             bw.write(record.v, 0, record.v.length());
             bw.newLine();
