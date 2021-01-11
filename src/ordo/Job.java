@@ -1,6 +1,5 @@
 package ordo;
 
-
 import formats.Format;
 import formats.Format.OpenMode;
 import formats.KVFormat;
@@ -37,14 +36,13 @@ public class Job implements JobInterfaceX {
     SortComparator sortComparator;
     private int numberOfMapsDone = 0;
 
-
     public Job() {
         super();
         // Empty
         this.numberOfMaps = 1;
         this.numberOfReduces = 1;
-        //TODO : changer cela pour que ce soit dynamique
-        //  this.inputFormat = Format.Type.KV;
+        // TODO : changer cela pour que ce soit dynamique
+        // this.inputFormat = Format.Type.KV;
         this.outputFormat = Format.Type.KV;
     }
 
@@ -62,8 +60,7 @@ public class Job implements JobInterfaceX {
 
         // Get all fragments
 
-        List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); //TODO : fix sur intellij
-
+        List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); // TODO : fix sur intellij
 
         this.numberOfMaps = fragments.size(); // One fragment = one runmap
 
@@ -83,26 +80,25 @@ public class Job implements JobInterfaceX {
 
             URI addresseDuFragment = fragment.node;
 
-
             try {
                 // Get the worker associated with the HDFS (and thus with the fragment)
-                Worker worker = ((Worker) Naming.lookup(Job.rmiServerAddress + ":" + Job.rmiPort + "/Node" + "(" + addresseDuFragment.getHost() + " : " + addresseDuFragment.getPort() + ")"));
-
+                Worker worker = ((Worker) Naming.lookup(Job.rmiServerAddress + ":" + Job.rmiPort + "/Node" + "("
+                        + addresseDuFragment.getHost() + " : " + addresseDuFragment.getPort() + ")"));
 
                 // Set the Format
-                Format iFormat = this.getFormatFromType(this.inputFormat, fragment.getAbsolutePath() + fragment.getFragmentName()); //TODO : tester quand la méthode sera définie
+                Format iFormat = this.getFormatFromType(this.inputFormat,
+                        fragment.getAbsolutePath() + fragment.getFragmentName());
 
+                // TODO : tester quand la méthode sera définie
+                FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart,
+                        fragment.node);
 
-                FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart, fragment.node);
-
-                Format oFormat = this.getFormatFromType(this.outputFormat, fragment.getAbsolutePath() + fragmentDuResultat.getFragmentName());
-
+                Format oFormat = this.getFormatFromType(this.outputFormat,
+                        fragment.getAbsolutePath() + fragmentDuResultat.getFragmentName());
 
                 worker.runMap(mr, iFormat, oFormat, callBack);
 
-
                 n++;
-
 
             } catch (NotBoundException e) {
                 System.out.println("Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
@@ -113,8 +109,6 @@ public class Job implements JobInterfaceX {
             }
         }
 
-
-
         try {
             // We wait for all nodes to call CallBack
             callBack.getSemaphore().acquire();
@@ -123,7 +117,6 @@ public class Job implements JobInterfaceX {
 
             // When callback frees semaphores, all nodes are done
             this.doReduceJob();
-
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -136,19 +129,13 @@ public class Job implements JobInterfaceX {
      */
     public void createTempFile() {
 
-        try {
+        // use HDFS to create a file
+        Format format = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
 
-            // use HDFS to create a file
-            Format format = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
+        // Create the local file
+        format.open(OpenMode.W);
 
-            // Create the local file
-            format.open(OpenMode.W);
-
-            HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1);
-
-        } catch (IOException e) {
-            System.out.println("Impossible to create the temporary result file.");
-        }
+        HdfsClient.HdfsWrite(outputFormat, getTempFolderPath() + this.getTempFileName(), 1);
 
     }
 
@@ -186,7 +173,7 @@ public class Job implements JobInterfaceX {
         // Delete temp file
         System.out.println("Let's delete temporary files");
         HdfsClient.HdfsDelete(getTempFileName());
-        //TODO : a tester quand ce sera implemente
+        // TODO : a tester quand ce sera implemente
     }
 
     public Format getFormatFromType(Format.Type type, String fName) {
@@ -207,7 +194,6 @@ public class Job implements JobInterfaceX {
 
         return format;
     }
-
 
     /* Setters and getters */
 
@@ -259,7 +245,7 @@ public class Job implements JobInterfaceX {
     @Override
     public void setInputFname(String fname) {
         this.inputFname = fname;
-        //TODO : changer mieux
+        // TODO : changer mieux
         this.outputFname = this.inputFname + "_result";
     }
 
