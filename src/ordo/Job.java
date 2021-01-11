@@ -91,7 +91,7 @@ public class Job implements JobInterfaceX {
 
                 // TODO : tester quand la méthode sera définie
                 FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart,
-                        fragment.node);
+                        fragment.node, fragment.root);
 
                 Format oFormat = this.getFormatFromType(this.outputFormat,
                         fragment.getAbsolutePath() + fragmentDuResultat.getFragmentName());

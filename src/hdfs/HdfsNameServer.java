@@ -586,7 +586,7 @@ public class HdfsNameServer {
         public int id;
         public boolean lastPart;
         public URI node;
-        private String root;
+        public String root;
 
         public FragmentInfo(String filename, int id, boolean lastPart, URI node, String root) {
             this.filename = filename;
