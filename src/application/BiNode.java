@@ -8,7 +8,6 @@ import java.rmi.RemoteException;
 
 public class BiNode {
 
-
     /**
      * @param nameserverHost
      * @param nameserverPort
@@ -17,7 +16,8 @@ public class BiNode {
      * @param rmiPort
      * @throws RemoteException
      */
-    public BiNode(String nameserverHost, int nameserverPort, String nodeRoot, String rmiHost, int rmiPort) throws RemoteException {
+    public BiNode(String nameserverHost, int nameserverPort, String nodeRoot, String rmiHost, int rmiPort)
+            throws RemoteException {
 
         HdfsNode hdfsNode = new HdfsNode(nameserverHost, nameserverPort, nodeRoot);
 
@@ -25,7 +25,8 @@ public class BiNode {
         Thread thread = new Thread() {
             public void run() {
 
-                Worker hidoopNode = new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(), hdfsNode.getServer().getPort());
+                Worker hidoopNode = new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
+                        hdfsNode.getServer().getPort());
 
             }
 
@@ -33,11 +34,11 @@ public class BiNode {
 
         thread.start();
 
-
     }
 
     public static void usage() {
-        System.out.println("Usage : BiNode <Nameserver address> <Nameserver port> <Node's root folder> <RMI address> <RMI port>");
+        System.out.println(
+                "Usage : BiNode <Nameserver address> <Nameserver port> <Node's root folder> <RMI address> <RMI port>");
     }
 
     public static void main(String[] args) {
