@@ -80,6 +80,12 @@ public class HdfsNode {
         System.out.println("* Dossier courant : " + this.nodeRoot);
         System.out.println();
 
+    }
+
+    /**
+     * Lance les 2 threads du serveur.
+     */
+    public void run() {
         this.runPinger();
 
         this.runListener();
