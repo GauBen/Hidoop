@@ -34,7 +34,7 @@ public class Job implements JobInterfaceX {
     Format.Type outputFormat;
     String outputFname;
     SortComparator sortComparator;
-    private int numberOfMapsDone = 0;
+    // private int numberOfMapsDone = 0;
 
     public Job() {
         super();
@@ -75,7 +75,7 @@ public class Job implements JobInterfaceX {
 
         // Connect to all node
         // TODO : ATTENTION AUX NOMS DES NODES
-        int n = 0;
+        // int n = 0;
         for (FragmentInfo fragment : fragments) {
 
             URI addresseDuFragment = fragment.node;
@@ -98,7 +98,7 @@ public class Job implements JobInterfaceX {
 
                 worker.runMap(mr, iFormat, oFormat, callBack);
 
-                n++;
+                // n++;
 
             } catch (NotBoundException e) {
                 System.out.println("Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
