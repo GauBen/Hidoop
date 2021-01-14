@@ -125,14 +125,12 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                     e2.printStackTrace();
                 }
 
-
                 File file = new File(reader.getFname());
 
                 if (file.isFile() && !file.isDirectory()) {
-                    //OK
+                    // OK
                     reader.open(OpenMode.R);
                     writer.open(OpenMode.W);
-
 
                     m.map(reader, writer);
 
@@ -147,7 +145,6 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                         e.printStackTrace();
                     }
 
-
                 } else { // The file to read doesn't exist on the node
                     try {
                         cb.error(id, "Fichier a lire non trouve !");
@@ -158,12 +155,10 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                     }
                 }
 
-
             }
         };
 
         thread.start();
-
 
     }
 
