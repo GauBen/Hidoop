@@ -58,7 +58,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     }
 
-    private static String workerAddress(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs,
+    public static String workerAddress(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs,
             int portDuNodeHdfs) {
         return "//" + hostDuRmi + ":" + portDuRmi + "/worker/" + hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
     }
