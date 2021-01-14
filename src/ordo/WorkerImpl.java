@@ -33,16 +33,9 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         super();
 
         try {
+            // TODO: remplacer la convention par un appel de fonction
             Naming.lookup(
-                    hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")"); // TODO:
-            // remplacer
-            // la
-            // convention
-            // par
-            // un
-            // appel
-            // de
-            // fonction
+                    hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")");
             System.out.println(
                     "Attention, cet ID a déjà été enregistré dans le RMIRegistry. Est-ce un doublon ou un redemarrage ?");
 
@@ -50,7 +43,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
             // OK
 
         } catch (MalformedURLException | RemoteException e) {
-            System.out.println("Le rmi registry n'est pas disponible sur " + Job.serverAddress + ":" + Job.port);
+            System.out.println("Le rmi registry n'est pas disponible sur " + hostDuRmi + ":" + portDuRmi);
             System.exit(1);
         }
 
@@ -58,12 +51,11 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
             Naming.rebind(
                     hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")",
                     this);
-            System.out.println(
-                    "Worker" + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")" + " bound in registry");
-
+            System.out
+                    .println("Worker /Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ") bound in registry");
         } catch (RemoteException e) {
-            System.out.println(
-                    "Il semble que le rmiregistry ne contienne pas les classes nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
+            System.out.println("Il semble que le rmiregistry ne contienne pas les classes "
+                    + "nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -99,9 +91,8 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         String hostDuNoeudHdfs = args[2];
         int portDuNoeudHdfs = Integer.parseInt(args[3]);
 
-        WorkerImpl worker;
         try {
-            worker = new WorkerImpl(hostDuRmi, portDuRmi, hostDuNoeudHdfs, portDuNoeudHdfs);
+            new WorkerImpl(hostDuRmi, portDuRmi, hostDuNoeudHdfs, portDuNoeudHdfs);
         } catch (RemoteException e1) {
             e1.printStackTrace();
         }
@@ -135,22 +126,15 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                     m.map(reader, writer);
 
                     try {
-                        try {
-                            cb.done();
-                        } catch (RemoteException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    } catch (InterruptedException e) {
+                        cb.done();
+                    } catch (RemoteException | InterruptedException e) {
                         e.printStackTrace();
                     }
 
                 } else { // The file to read doesn't exist on the node
                     try {
                         cb.error(id, "Fichier a lire non trouve !");
-                    } catch (RemoteException e1) {
-                        e1.printStackTrace();
-                    } catch (InterruptedException e1) {
+                    } catch (RemoteException | InterruptedException e1) {
                         e1.printStackTrace();
                     }
                 }
