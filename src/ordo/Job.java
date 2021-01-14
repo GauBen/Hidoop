@@ -155,12 +155,12 @@ public class Job implements JobInterfaceX {
         Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
 
         // We create the result file
-        File file = new File(getResFolderPath() + this.outputFname);
+        File file = new File(getResFolderPath(), this.outputFname);
         try {
             file.createNewFile();
-
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(8);
         }
         Format oFormat = this.getFormatFromType(this.outputFormat, getResFolderPath() + this.outputFname);
 
