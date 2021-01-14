@@ -177,36 +177,45 @@ public class HdfsNode {
 
         while (true) {
             try {
-
                 Socket sock = this.server.accept();
 
                 ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
                 ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
-                this.handleRequest(sock, inputStream, outputStream);
+                HdfsNode self = this;
+                new Thread(new Runnable() {
+                    public void run() {
+                        self.handleRequest(sock, inputStream, outputStream);
+                    }
+                }).start();
 
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
     }
 
-    private void handleRequest(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws IOException, ClassNotFoundException {
+    private void handleRequest(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
 
-        Action action = (Action) inputStream.readObject();
+        try {
 
-        if (action == Action.PING) {
-            outputStream.writeObject(Action.PONG);
-        } else if (action == Action.WRITE) {
-            this.handleWrite(sock, inputStream, outputStream);
-        } else if (action == Action.READ) {
-            this.handleRead(sock, inputStream, outputStream);
-        } else if (action == Action.DELETE) {
-            this.handleDelete(sock, inputStream, outputStream);
-        } else if (action == Action.FORCE_RESCAN) {
-            this.handleForceRescan(sock, inputStream, outputStream);
+            Action action = (Action) inputStream.readObject();
+
+            if (action == Action.PING) {
+                outputStream.writeObject(Action.PONG);
+            } else if (action == Action.WRITE) {
+                this.handleWrite(sock, inputStream, outputStream);
+            } else if (action == Action.READ) {
+                this.handleRead(sock, inputStream, outputStream);
+            } else if (action == Action.DELETE) {
+                this.handleDelete(sock, inputStream, outputStream);
+            } else if (action == Action.FORCE_RESCAN) {
+                this.handleForceRescan(sock, inputStream, outputStream);
+            }
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
