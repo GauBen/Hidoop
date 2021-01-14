@@ -33,26 +33,22 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         super();
 
         try {
-            // TODO: remplacer la convention par un appel de fonction
-            Naming.lookup(
-                    hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")");
+            Naming.lookup(workerAddress(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs));
             System.out.println(
                     "Attention, cet ID a déjà été enregistré dans le RMIRegistry. Est-ce un doublon ou un redemarrage ?");
-
         } catch (NotBoundException e) {
             // OK
-
-        } catch (MalformedURLException | RemoteException e) {
+        } catch (RemoteException e) {
             System.out.println("Le rmi registry n'est pas disponible sur " + hostDuRmi + ":" + portDuRmi);
             System.exit(1);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            System.exit(2);
         }
 
         try {
-            Naming.rebind(
-                    hostDuRmi + ":" + portDuRmi + "/Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ")",
-                    this);
-            System.out
-                    .println("Worker /Node(" + hostDistantDuNoeudHdfs + " : " + portDuNodeHdfs + ") bound in registry");
+            Naming.rebind(workerAddress(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs), this);
+            System.out.println("Worker " + hostDistantDuNoeudHdfs + ":" + portDuNodeHdfs + " enregistré");
         } catch (RemoteException e) {
             System.out.println("Il semble que le rmiregistry ne contienne pas les classes "
                     + "nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
@@ -60,6 +56,11 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
             e.printStackTrace();
         }
 
+    }
+
+    private static String workerAddress(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs,
+            int portDuNodeHdfs) {
+        return "//" + hostDuRmi + ":" + portDuRmi + "/worker/" + hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
     }
 
     public static void usage() {
