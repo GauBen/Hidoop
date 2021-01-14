@@ -23,7 +23,7 @@ public class Job implements JobInterfaceX {
     /**
      * Settings for RMI
      */
-    static String rmiServerAddress = "//localhost";
+    static String rmiServerAddress = "127.0.0.1";
     static int rmiPort = 4000;
     MapReduce mapReduce;
     Format.Type inputFormat;
@@ -82,19 +82,17 @@ public class Job implements JobInterfaceX {
 
             try {
                 // Get the worker associated with the HDFS (and thus with the fragment)
-                Worker worker = ((Worker) Naming.lookup(Job.rmiServerAddress + ":" + Job.rmiPort + "/Node" + "("
-                        + addresseDuFragment.getHost() + " : " + addresseDuFragment.getPort() + ")"));
+                Worker worker = (Worker) Naming.lookup(WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
+                        addresseDuFragment.getHost(), addresseDuFragment.getPort()));
 
                 // Set the Format
-                Format iFormat = this.getFormatFromType(this.inputFormat,
-                        fragment.getAbsolutePath() + fragment.getFragmentName());
+                Format iFormat = this.getFormatFromType(this.inputFormat, fragment.getAbsolutePath());
 
                 // TODO : tester quand la méthode sera définie
                 FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart,
                         fragment.node, fragment.root);
 
-                Format oFormat = this.getFormatFromType(this.outputFormat,
-                        fragment.getAbsolutePath() + fragmentDuResultat.getFragmentName());
+                Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
 
                 worker.runMap(mr, iFormat, oFormat, callBack);
 
@@ -104,7 +102,9 @@ public class Job implements JobInterfaceX {
                 System.out.println("Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
                 return;
             } catch (MalformedURLException | RemoteException e) {
-                System.out.println("Le rmi registry n'est pas disponible sur " + Job.rmiPort + ":" + Job.rmiPort);
+                e.printStackTrace();
+                System.out.println(
+                        "Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
                 return;
             }
         }
