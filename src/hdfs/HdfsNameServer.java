@@ -6,10 +6,7 @@
 
 package hdfs;
 
-import formats.Format;
-import formats.Format.OpenMode;
 import formats.KV;
-import formats.KVFormatS;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +35,7 @@ public class HdfsNameServer {
     /**
      * Nombre de lignes stockées dans le buffer.
      */
-    final public static int BUFFER_SIZE = 128;
+    final public static int BUFFER_SIZE = 65536;
 
     /**
      * Les actions possibles dans HDFS.
@@ -324,37 +321,11 @@ public class HdfsNameServer {
 
         Metadata metadata = (Metadata) inputStream.readObject();
 
-        File tmp = File.createTempFile("hdfs-", ".tmp");
-        tmp.deleteOnExit();
-
-        Format writer = new KVFormatS(tmp.getAbsolutePath());
-        writer.open(OpenMode.W);
-
-        int lines = 0;
-
-        while (true) {
-            KV record = (KV) inputStream.readObject();
-            if (record == null) {
-                break;
-            }
-            writer.write(record);
-            lines++;
-        }
-        writer.close();
-
-        // On a reçu tout le fichier, on informe le client que c'est bon
-        outputStream.writeObject(Action.PONG);
-
-        // On le distribue aux noeuds
-        int linesParFragment = (int) Math.ceil(lines / this.nodes.size());
         boolean lastPart = false;
-        KV[] buffer = new KV[linesParFragment];
-
-        Format reader = new KVFormatS(tmp.getAbsolutePath());
-        reader.open(OpenMode.R);
-
+        KV[] buffer = new KV[BUFFER_SIZE];
         int fragment = 0;
-        KV firstRecord = reader.read();
+
+        KV firstRecord = (KV) inputStream.readObject();
 
         if (firstRecord == null) {
             return;
@@ -365,9 +336,9 @@ public class HdfsNameServer {
 
             buffer[0] = firstRecord;
 
-            for (int i = 1; i < linesParFragment; i++) {
+            for (int i = 1; i < BUFFER_SIZE; i++) {
 
-                KV record = (KV) reader.read();
+                KV record = (KV) inputStream.readObject();
                 buffer[i] = record;
 
                 if (record == null) {
@@ -380,7 +351,7 @@ public class HdfsNameServer {
             // On veut une gestion propre de la fin du fichier si elle est sur la fin d'un
             // fragment
             if (!lastPart) {
-                firstRecord = (KV) reader.read();
+                firstRecord = (KV) inputStream.readObject();
                 if (firstRecord == null) {
                     lastPart = true;
                 }
@@ -391,7 +362,7 @@ public class HdfsNameServer {
             fragment++;
         }
 
-        reader.close();
+        outputStream.writeObject(Action.PONG);
 
     }
 
