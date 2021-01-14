@@ -1,7 +1,6 @@
 package application;
 
 import hdfs.HdfsNode;
-import ordo.Worker;
 import ordo.WorkerImpl;
 
 import java.rmi.RemoteException;
@@ -16,8 +15,7 @@ public class BiNode {
      * @param rmiPort
      * @throws RemoteException
      */
-    public BiNode(String nameserverHost, int nameserverPort, String nodeRoot, String rmiHost, int rmiPort)
-            throws RemoteException {
+    public BiNode(String nameserverHost, int nameserverPort, String nodeRoot, String rmiHost, int rmiPort) {
 
         HdfsNode hdfsNode = new HdfsNode(nameserverHost, nameserverPort, nodeRoot);
 
@@ -25,7 +23,7 @@ public class BiNode {
         Thread thread = new Thread() {
             public void run() {
                 try {
-                    Worker hidoopNode = new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
+                    new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
                             hdfsNode.getServer().getLocalPort());
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -67,11 +65,6 @@ public class BiNode {
         String nodeRootFolder = args[2];
         String rmiHost = args[3];
 
-        try {
-            BiNode biNode = new BiNode(nameserverHost, nameserverPort, nodeRootFolder, rmiHost, rmiPort);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-
+        new BiNode(nameserverHost, nameserverPort, nodeRootFolder, rmiHost, rmiPort);
     }
 }
