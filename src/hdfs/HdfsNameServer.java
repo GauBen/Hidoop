@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -552,7 +553,8 @@ public class HdfsNameServer {
         return true;
     }
 
-    public static class FragmentInfo {
+    public static class FragmentInfo implements Serializable {
+        private static final long serialVersionUID = -1636990109710437159L;
         public String filename;
         public int id;
         public boolean lastPart;
