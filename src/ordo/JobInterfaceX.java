@@ -2,7 +2,6 @@
 
 package ordo;
 
-import map.MapReduce;
 import formats.Format;
 
 public interface JobInterfaceX extends JobInterface {
