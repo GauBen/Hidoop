@@ -14,6 +14,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import formats.Format;
 import formats.KV;
@@ -165,6 +166,7 @@ public class HdfsClient {
 
             List<FragmentInfo> lst = new ArrayList<>();
             for (Object i : (List<?>) in.readObject()) {
+                Objects.requireNonNull(i);
                 lst.add((FragmentInfo) i);
             }
 
