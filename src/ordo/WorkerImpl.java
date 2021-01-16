@@ -1,5 +1,6 @@
 package ordo;
 
+import application.RmiCustom;
 import formats.Format;
 import formats.Format.OpenMode;
 import map.Mapper;
@@ -47,11 +48,25 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         }
 
         try {
-            Naming.rebind(workerAddress(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs), this);
-            System.out.println("Worker " + hostDistantDuNoeudHdfs + ":" + portDuNodeHdfs + " enregistré");
+
+            try {
+                RmiCustom rmi = (RmiCustom) Naming.lookup(hostDuRmi + portDuRmi + "/RMIMaster");
+
+                //  Naming.rebind(workerAddress(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs), this);
+                rmi.registerNode(hostDuRmi, portDuRmi, this);
+                System.out.println("Worker " + hostDistantDuNoeudHdfs + ":" + portDuNodeHdfs + " enregistré");
+
+
+            } catch (NotBoundException e) {
+                e.printStackTrace();
+            }
+
+
         } catch (RemoteException e) {
-            System.out.println("Il semble que le rmiregistry ne contienne pas les classes "
-                    + "nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ?");
+            System.out.println("Il est probable que le rmiregistry ne contienne pas les classes "
+                    + "nécessaires! Etes vous sur de l'avoir executé dans le bon dossier ? Au cas ou, voici l'erreur : ");
+            e.printStackTrace();
+            System.exit(10);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
