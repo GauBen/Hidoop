@@ -25,3 +25,13 @@ done
 
 # TODO : STOPPER LES SERVEURS LORSQUE ON APPUIE SUR UN CARACTERE !
 echo "\nAppuyez sur un bouton pour arreter"
+while [ true ] ; do
+read -t 3 -n 1
+if [ $? = 0 ] ; then
+exit ;
+fi
+done
+for HOSTNAME in ${HOSTS} ; do
+    ssh -l ${USERNAME} -p $mypassword ${HOSTNAME} "pkill -9 -f BiNode"
+done
+
