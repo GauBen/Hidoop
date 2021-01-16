@@ -1,6 +1,6 @@
 package ordo;
 
-import application.RmiCustom;
+import application.RmiCustomInterface;
 import formats.Format;
 import formats.Format.OpenMode;
 import map.Mapper;
@@ -11,6 +11,8 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 /**
@@ -22,19 +24,21 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     public String id;
 
-    /**
-     * Settings for RMI
-     */
-    static String serverAddress = "//localhost";
-
-    static int port = 1; // Offset du port
-
     public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
             throws RemoteException {
         super();
 
         try {
+
+            Registry registry = LocateRegistry.getRegistry(hostDuRmi, portDuRmi);
+
+            System.out.println("Voici le contenu du registry distant");
+            for (String element : registry.list()) {
+                System.out.println(element);
+            }
+
             Naming.lookup(workerAddress(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs));
+
             System.out.println(
                     "Attention, cet ID a déjà été enregistré dans le RMIRegistry. Est-ce un doublon ou un redemarrage ?");
         } catch (NotBoundException e) {
@@ -50,10 +54,10 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         try {
 
             try {
-                RmiCustom rmi = (RmiCustom) Naming.lookup(hostDuRmi + portDuRmi + "/RMIMaster");
+                RmiCustomInterface rmi = (RmiCustomInterface) Naming.lookup("//" + hostDuRmi + ":" + portDuRmi + "/RMIMaster");
 
                 //  Naming.rebind(workerAddress(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs), this);
-                rmi.registerNode(hostDuRmi, portDuRmi, this);
+                rmi.registerNode(hostDuRmi, portDuRmi, hostDistantDuNoeudHdfs, portDuNodeHdfs, this);
                 System.out.println("Worker " + hostDistantDuNoeudHdfs + ":" + portDuNodeHdfs + " enregistré");
 
 
