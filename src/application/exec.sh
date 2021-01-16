@@ -2,7 +2,7 @@
 USERNAME=someUser
 HOSTS="pikachu.enseeiht.fr carapuce.enseeiht.fr salameche.enseeiht.fr"
 
-
+# TODO : PAS SUR QUE $HOSTNAME MARCHE !!!
 CURRENT_HOST=$HOSTNAME # Le nom du serveur qui héberge le HdfsServer et le rmiserver ATTENTION a verifier si c'est defini sur les pc de l'enseeiht
 NameserverPort=30000
 RmiserverPort=4000
@@ -17,8 +17,8 @@ rmiregistry ${RmiserverPort} & # On fait un RMI registry en tache de fond
 java "HdfsServer.class" # TODO : ajouter les arguments
 
 # Execution des commandes sur les machines distantes
-for HOSTNAME in ${HOSTS} ; do
-    ssh -l ${USERNAME} -p $mypassword ${HOSTNAME} "${SCRIPT}"
+for HOST in ${HOSTS} ; do
+    ssh -l ${USERNAME} ${HOST} "${SCRIPT}"
 done
 
 
@@ -31,7 +31,9 @@ if [ $? = 0 ] ; then
 exit ;
 fi
 done
-for HOSTNAME in ${HOSTS} ; do
-    ssh -l ${USERNAME} -p $mypassword ${HOSTNAME} "pkill -9 -f BiNode"
+echo "On stoppe les serveurs..."
+for HOST in ${HOSTS} ; do
+    echo "On stoppe " $HOST
+    ssh -l ${USERNAME} ${HOST} "pkill -9 -f BiNode"
 done
 
