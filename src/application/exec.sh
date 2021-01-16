@@ -18,6 +18,7 @@ java "HdfsServer.class" # TODO : ajouter les arguments
 
 # Execution des commandes sur les machines distantes
 for HOST in ${HOSTS} ; do
+  echo "On demarre " $HOST
     ssh -l ${USERNAME} ${HOST} "${SCRIPT}"
 done
 
