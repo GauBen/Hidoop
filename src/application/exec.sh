@@ -8,7 +8,7 @@ NameserverPort=30000
 RmiserverPort=4000
 
 # Le script execute sur chaque machine - adresse du nameserver, port du nameserver, nom du dossier dans lequel y'a les fichiers de Hdfs,adresse du RMI, port du RMI
-SCRIPT="cd Hidoop/NodeHDFS && java BiNode.class" ${CURRENT_HOST} ${NameserverPort} "files" ${CURRENT_HOST} ${RmiserverPort}
+SCRIPT="cd Hidoop/NodeHDFS && java -Xms8G -Xmx8G BiNode.class" ${CURRENT_HOST} ${NameserverPort} "files" ${CURRENT_HOST} ${RmiserverPort}
 
 
 # On demarre le RMI
@@ -20,3 +20,8 @@ java "HdfsServer.class" # TODO : ajouter les arguments
 for HOSTNAME in ${HOSTS} ; do
     ssh -l ${USERNAME} -p $mypassword ${HOSTNAME} "${SCRIPT}"
 done
+
+
+
+# TODO : STOPPER LES SERVEURS LORSQUE ON APPUIE SUR UN CARACTERE !
+echo "\nAppuyez sur un bouton pour arreter"
