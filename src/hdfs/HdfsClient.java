@@ -65,17 +65,24 @@ public class HdfsClient {
             out.writeObject(Action.READ);
             File f = new File(hdfsFname);
             out.writeObject(new Metadata(f.getName(), Type.LINE));
+            int i = 0;
 
             // On réceptionne toutes les lignes
             while (true) {
-                KV line = (KV) in.readObject();
-                if (line == null) {
+                System.out.println(i++);
+                KV[] records = (KV[]) in.readObject();
+                if (records == null) {
                     break;
                 }
-                if (lf != null) {
-                    lf.write(line);
-                } else {
-                    System.out.println(line);
+                for (KV record : records) {
+                    if (record == null) {
+                        break;
+                    }
+                    if (lf != null) {
+                        lf.write(record);
+                    } else {
+                        System.out.println(record);
+                    }
                 }
             }
 

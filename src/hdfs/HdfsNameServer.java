@@ -293,13 +293,7 @@ public class HdfsNameServer {
 
             ObjectInputStream nodeInputStream = new ObjectInputStream(nodeSock.getInputStream());
 
-            while (true) {
-                KV record = (KV) nodeInputStream.readObject();
-                if (record == null) {
-                    break;
-                }
-                outputStream.writeObject(record);
-            }
+            outputStream.writeObject(nodeInputStream.readObject());
 
             nodeOutputStream.writeObject(Action.PONG);
 

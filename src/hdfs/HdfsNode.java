@@ -228,13 +228,15 @@ public class HdfsNode {
 
         Format reader = new LineFormatS(file.getAbsolutePath());
         reader.open(Format.OpenMode.R);
-        while (true) {
-            KV record = (KV) reader.read();
-            outputStream.writeObject(record);
+        KV[] records = new KV[HdfsNameServer.BUFFER_SIZE];
+        for (int i = 0; i < HdfsNameServer.BUFFER_SIZE; i++) {
+            KV record = reader.read();
+            records[i] = record;
             if (record == null) {
                 break;
             }
         }
+        outputStream.writeObject(records);
         reader.close();
 
         assert inputStream.readObject() == Action.PONG;
