@@ -115,7 +115,7 @@ public class Job implements JobInterfaceX {
         try {
             // We wait for all nodes to call CallBack
             callBack.getSemaphore().acquire();
-
+            System.out.println("All done ! Let's request a file refresh...");
             HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete fait
 
             // When callback frees semaphores, all nodes are done
