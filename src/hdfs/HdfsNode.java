@@ -387,7 +387,7 @@ public class HdfsNode {
             nodeRoot = args[1];
         }
 
-        new HdfsNode(uri.getHost(), uri.getPort(), nodeRoot);
+        new HdfsNode(uri.getHost(), uri.getPort(), nodeRoot).run();
     }
 
     /**
