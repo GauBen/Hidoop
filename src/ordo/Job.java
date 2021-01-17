@@ -12,6 +12,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -147,12 +150,30 @@ public class Job implements JobInterfaceX {
 
         System.out.println("Let's reduce " + getTempFolderPath() + this.getTempFileName());
 
+        // Create tmp folder if not existing
+        Path path = Paths.get(getTempFolderPath());
+        try {
+            Files.createDirectories(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
         // Get the complete file from the HDFS and replace the empty file
         // TODO : verifier que ça remplace bien
         HdfsClient.HdfsRead(this.getTempFileName(), getTempFolderPath() + this.getTempFileName());
 
         // We open the temp file
         Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
+
+        // Create res folder if not existing
+        Path pathRes = Paths.get(getResFolderPath());
+        try {
+            Files.createDirectories(pathRes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
         // We create the result file
         File file = new File(getResFolderPath(), this.outputFname);
@@ -169,6 +190,7 @@ public class Job implements JobInterfaceX {
 
         // Do the reduce
         this.mapReduce.reduce(iFormat, oFormat);
+        System.out.println("Done ! Resultat dans " + getTempFolderPath() + this.outputFname);
 
         // Delete temp file
         System.out.println("Let's delete temporary files");
