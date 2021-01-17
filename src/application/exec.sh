@@ -8,11 +8,11 @@ NameserverPort=30000
 RmiserverPort=4000
 
 # Le script execute sur chaque machine - adresse du nameserver, port du nameserver, nom du dossier dans lequel y'a les fichiers de Hdfs,adresse du RMI, port du RMI
-SCRIPT="cd Hidoop/NodeHDFS && java -Xms8G -Xmx8G BiNode.class" ${CURRENT_HOST} ${NameserverPort} "files" ${CURRENT_HOST} ${RmiserverPort}
+SCRIPT="cd /work/gclaveri/Hidoop && java application.BiNode" ${CURRENT_HOST} ${NameserverPort} "files" ${CURRENT_HOST} ${RmiserverPort}
 
 
 # On demarre le RMI
-rmiregistry ${RmiserverPort} & # On fait un RMI registry en tache de fond
+java Hidoop.application.RmiCustom ${RmiserverPort} & # On fait un RMI registry en tache de fond
 
 java "HdfsServer.class" # TODO : ajouter les arguments
 
