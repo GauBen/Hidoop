@@ -1,6 +1,6 @@
 #!/bin/bash
 USERNAME=someUser
-HOSTS="pikachu.enseeiht.fr carapuce.enseeiht.fr salameche.enseeiht.fr"
+HOSTS="pikachu carapuce salameche"
 
 # TODO : PAS SUR QUE $HOSTNAME MARCHE !!!
 CURRENT_HOST=$HOSTNAME # Le nom du serveur qui héberge le HdfsServer et le rmiserver ATTENTION a verifier si c'est defini sur les pc de l'enseeiht
@@ -14,7 +14,7 @@ SCRIPT="cd /work/gclaveri/Hidoop && java application.BiNode" ${CURRENT_HOST} ${N
 # On demarre le RMI
 java Hidoop.application.RmiCustom ${RmiserverPort} & # On fait un RMI registry en tache de fond
 
-java "HdfsServer.class" # TODO : ajouter les arguments
+java "Hidoop.application.HdfsNameServer" # TODO : ajouter les arguments
 
 # Execution des commandes sur les machines distantes
 for HOST in ${HOSTS} ; do
