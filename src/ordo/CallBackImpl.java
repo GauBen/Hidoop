@@ -20,9 +20,9 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
      * Called by the nodes when they are done Mapping
      */
     @Override
-    public void done() throws RemoteException, InterruptedException {
+    public void done(String id, long processDuration) throws RemoteException, InterruptedException {
         this.numberOfTasksDone++;
-
+        System.out.println("Le node " + id + " a fini en " + processDuration);
         // Free
         if (this.numberOfTasksDone == this.numberOfMaps) {
             this.semaphore.release();

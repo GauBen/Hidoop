@@ -27,7 +27,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
     public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
             throws RemoteException {
         super();
-
+        this.id = hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
         try {
 
             Registry registry = LocateRegistry.getRegistry(hostDuRmi, portDuRmi);
@@ -127,6 +127,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         Thread thread = new Thread() {
             public void run() {
 
+                long startTime = System.currentTimeMillis();
                 System.out.println("Creating a temporary file... " + writer.getFname());
                 File tempResultFile = new File(writer.getFname());
                 try {
@@ -146,7 +147,8 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                     m.map(reader, writer);
 
                     try {
-                        cb.done();
+                        long endTime = System.currentTimeMillis();
+                        cb.done(id, endTime - startTime);
                     } catch (RemoteException | InterruptedException e) {
                         e.printStackTrace();
                     }
