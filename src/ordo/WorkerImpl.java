@@ -32,7 +32,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
             Registry registry = LocateRegistry.getRegistry(hostDuRmi, portDuRmi);
 
-            System.out.println("Voici le contenu du registry distant");
+            System.out.println("> Voici le contenu du registry distant");
             for (String element : registry.list()) {
                 System.out.println(element);
             }
@@ -122,13 +122,13 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
     @Override
     public void runMap(Mapper m, Format reader, Format writer, CallBack cb) throws RemoteException {
 
-        System.out.println("Voici le nom de mon fragment a ouvrir " + reader.getFname());
+        System.out.println("> Voici le nom de mon fragment a ouvrir " + reader.getFname());
 
         Thread thread = new Thread() {
             public void run() {
 
                 long startTime = System.currentTimeMillis();
-                System.out.println("Creating a temporary file... " + writer.getFname());
+                System.out.println("> Creating a temporary file... " + writer.getFname());
                 File tempResultFile = new File(writer.getFname());
                 try {
                     tempResultFile.createNewFile();
@@ -137,6 +137,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                     e2.printStackTrace();
                 }
 
+                // On recupere notre gragment a traiter
                 File file = new File(reader.getFname());
 
                 if (file.isFile() && !file.isDirectory()) {

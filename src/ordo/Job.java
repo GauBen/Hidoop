@@ -31,7 +31,6 @@ public class Job implements JobInterfaceX {
     MapReduce mapReduce;
     Format.Type inputFormat;
     String inputFname;
-    // TODO : les numberOfReduces/Maps à determnier, donnés par HDFS ??
     int numberOfReduces;
     int numberOfMaps;
     Format.Type outputFormat;
@@ -41,18 +40,27 @@ public class Job implements JobInterfaceX {
 
     public Job() {
         super();
-        // Empty
+        // Ces valeurs sont écrasées plus tard
         this.numberOfMaps = 1;
         this.numberOfReduces = 1;
-        // TODO : changer cela pour que ce soit dynamique
-        // this.inputFormat = Format.Type.KV;
+
         this.outputFormat = Format.Type.KV;
     }
 
+    /**
+     * Path du dossier qui contient les resultats temporaires
+     *
+     * @return String
+     */
     public static String getTempFolderPath() {
         return System.getProperty("user.dir") + "/tmp/";
     }
 
+    /**
+     * Path du dossier qui contient lres resultats finaux
+     *
+     * @return Stirng
+     */
     public static String getResFolderPath() {
         return System.getProperty("user.dir") + "/res/";
     }
@@ -65,7 +73,12 @@ public class Job implements JobInterfaceX {
 
         List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); // TODO : fix sur intellij
 
-        this.numberOfMaps = fragments.size(); // One fragment = one runmap
+        if (fragments == null) {
+            System.out.println("Le fichier n'a pas ete trouve dans le HDFS!");
+            System.exit(11);
+        }
+
+        this.numberOfMaps = fragments.size(); // One fragm ent = one runmap
 
         // Define the callback used to know when a worker is done
         CallBackImpl callBack;
@@ -99,7 +112,6 @@ public class Job implements JobInterfaceX {
 
                 worker.runMap(mr, iFormat, oFormat, callBack);
 
-                // n++;
 
             } catch (NotBoundException e) {
                 System.out.println("> Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
@@ -146,6 +158,9 @@ public class Job implements JobInterfaceX {
         return this.outputFname + "_result_temp";
     }
 
+    /**
+     * Appelée quand tous les workers on travaille sur leur fragment
+     */
     public void doReduceJob() {
 
         System.out.println("> Let's reduce " + getTempFolderPath() + this.getTempFileName());
