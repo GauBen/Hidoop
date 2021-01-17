@@ -1,6 +1,5 @@
 package application;
 
-
 import ordo.Worker;
 
 import java.net.MalformedURLException;
@@ -10,8 +9,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
-
 public class RmiCustom extends UnicastRemoteObject implements RmiCustomInterface {
+    private static final long serialVersionUID = 3522514835506730269L;
+
     protected RmiCustom() throws RemoteException {
     }
 
@@ -43,13 +43,13 @@ public class RmiCustom extends UnicastRemoteObject implements RmiCustomInterface
 
     }
 
-    public void registerNode(String adresseDuRmi, int portDuRmi, String address, int port, Worker worker) throws MalformedURLException, RemoteException {
+    public void registerNode(String adresseDuRmi, int portDuRmi, String address, int port, Worker worker)
+            throws MalformedURLException, RemoteException {
         String toRegister = workerAddress(adresseDuRmi, portDuRmi, address, port);
 
         Naming.rebind(toRegister, worker);
         System.out.println(toRegister + " s'est register !!!");
     }
-
 
     public String workerAddress(String adresseDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs) {
         return "//" + adresseDuRmi + ":" + portDuRmi + "/worker/" + hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
