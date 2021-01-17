@@ -1,5 +1,5 @@
 #!/bin/bash
-USERNAME=someUser
+USERNAME=gclaveri
 HOSTS="pikachu carapuce salameche"
 
 # TODO : PAS SUR QUE $HOSTNAME MARCHE !!!
@@ -8,33 +8,36 @@ NameserverPort=30000
 RmiserverPort=4000
 
 # Le script execute sur chaque machine - adresse du nameserver, port du nameserver, nom du dossier dans lequel y'a les fichiers de Hdfs,adresse du RMI, port du RMI
-SCRIPT="cd /work/gclaveri/Hidoop && java application.BiNode" ${CURRENT_HOST} ${NameserverPort} "files" ${CURRENT_HOST} ${RmiserverPort}
+SCRIPT=cd /work/gclaveri/Hidoop && mkdir "node" && "java application.BiNode" ${CURRENT_HOST} ${NameserverPort} "node" ${CURRENT_HOST} ${RmiserverPort}  > BiNodeLog.log
 
+cd Hidoop
 
 # On demarre le RMI
-java Hidoop.application.RmiCustom ${RmiserverPort} & # On fait un RMI registry en tache de fond
+java application.RmiCustom ${RmiserverPort} & # On fait un RMI registry en tache de fond
 
-java "Hidoop.application.HdfsNameServer" # TODO : ajouter les arguments
+java "hdfs.HdfsNameServer" # TODO : ajouter les arguments
 
 # Execution des commandes sur les machines distantes
 for HOST in ${HOSTS} ; do
-  echo "On demarre " $HOST
+    echo "On demarre " $HOST
     ssh -l ${USERNAME} ${HOST} "${SCRIPT}"
 done
 
 
-
 # TODO : STOPPER LES SERVEURS LORSQUE ON APPUIE SUR UN CARACTERE !
-echo "\nAppuyez sur un bouton pour arreter"
+echo "Appuyez sur un bouton pour arreter"
 while [ true ] ; do
 read -t 3 -n 1
 if [ $? = 0 ] ; then
 exit ;
 fi
 done
+pkill -9 -f RmiCustom
+
 echo "On stoppe les serveurs..."
 for HOST in ${HOSTS} ; do
     echo "On stoppe " $HOST
-    ssh -l ${USERNAME} ${HOST} "pkill -9 -f BiNode"
+    ssh -l ${USERNAME} ${HOST} "pkill -9 -f BiNode" &
 done
 
+cd ..
