@@ -3,14 +3,16 @@ package hdfs;
 import formats.Format;
 import formats.KV;
 import formats.LineFormat;
-import formats.LineFormatS;
 import hdfs.HdfsNameServer.Action;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -226,20 +228,12 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         File file = this.files.get(fileName).get(fragment);
 
-        Format reader = new LineFormatS(file.getAbsolutePath());
-        reader.open(Format.OpenMode.R);
-        KV[] records = new KV[HdfsNameServer.BUFFER_SIZE];
-        for (int i = 0; i < HdfsNameServer.BUFFER_SIZE; i++) {
-            KV record = reader.read();
-            records[i] = record;
-            if (record == null) {
-                break;
-            }
-        }
-        outputStream.writeObject(records);
-        reader.close();
+        OutputStream os = sock.getOutputStream();
+        os.write(Files.readAllBytes(Path.of(file.getAbsolutePath())));
+        os.close();
 
         assert inputStream.readObject() == Action.PONG;
+        sock.close();
     }
 
     private void handleWrite(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)

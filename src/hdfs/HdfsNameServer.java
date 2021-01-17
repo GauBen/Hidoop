@@ -8,6 +8,7 @@ package hdfs;
 
 import formats.KV;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -275,6 +276,8 @@ public class HdfsNameServer {
     private void handleRead(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
             throws ClassNotFoundException, IOException {
 
+        BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
+
         Metadata metadata = (Metadata) inputStream.readObject();
         if (!this.isFileComplete(metadata.getName())) {
             throw new RuntimeException("Fichier incomplet");
@@ -291,15 +294,14 @@ public class HdfsNameServer {
             nodeOutputStream.writeObject(metadata.getName());
             nodeOutputStream.writeObject(fragment);
 
-            ObjectInputStream nodeInputStream = new ObjectInputStream(nodeSock.getInputStream());
-
-            outputStream.writeObject(nodeInputStream.readObject());
+            nodeSock.getInputStream().transferTo(bos);
+            bos.flush();
 
             nodeOutputStream.writeObject(Action.PONG);
 
         }
 
-        outputStream.writeObject(null);
+        bos.close();
         assert inputStream.readObject() == Action.PONG;
 
     }
@@ -403,7 +405,7 @@ public class HdfsNameServer {
                     if (record == null) {
                         break;
                     }
-                    outputStream.writeObject(record);
+                    outputStream.writeUnshared(record);
                 }
                 outputStream.writeObject(null);
 

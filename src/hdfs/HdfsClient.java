@@ -6,12 +6,15 @@
 
 package hdfs;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -47,50 +50,24 @@ public class HdfsClient {
      * @param localFSDestFname Nom du fichier local dans lequel écrire
      */
     public static void HdfsRead(String hdfsFname, String localFSDestFname) {
-        // On ouvre le fichier local à écrire
-        Format lf = null;
-        if (localFSDestFname != null) {
-            lf = new LineFormatS(localFSDestFname);
-            lf.open(Format.OpenMode.W);
-        }
+        Objects.requireNonNull(localFSDestFname);
 
         try {
 
             // Connexion au premier noeud
             Socket sock = newNameServerSocket();
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
+            BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
 
             // On lui envoie que l'on veut lire un fichier
             out.writeObject(Action.READ);
             File f = new File(hdfsFname);
             out.writeObject(new Metadata(f.getName(), Type.LINE));
-            int i = 0;
 
-            // On réceptionne toutes les lignes
-            while (true) {
-                System.out.println(i++);
-                KV[] records = (KV[]) in.readObject();
-                if (records == null) {
-                    break;
-                }
-                for (KV record : records) {
-                    if (record == null) {
-                        break;
-                    }
-                    if (lf != null) {
-                        lf.write(record);
-                    } else {
-                        System.out.println(record);
-                    }
-                }
-            }
+            Files.write(Path.of(localFSDestFname), in.readAllBytes());
 
             sock.close();
-            if (lf != null) {
-                lf.close();
-            }
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
