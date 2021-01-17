@@ -68,7 +68,7 @@ public class Job implements JobInterfaceX {
         this.numberOfMaps = fragments.size(); // One fragment = one runmap
 
         // Define the callback used to know when a worker is done
-        CallBackImpl callBack = null;
+        CallBackImpl callBack;
         try {
             callBack = new CallBackImpl(this.getNumberOfMaps());
         } catch (RemoteException e) {
@@ -102,12 +102,12 @@ public class Job implements JobInterfaceX {
                 // n++;
 
             } catch (NotBoundException e) {
-                System.out.println("Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
+                System.out.println("> Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
                 return;
             } catch (MalformedURLException | RemoteException e) {
                 e.printStackTrace();
                 System.out.println(
-                        "Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
+                        "> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
                 return;
             }
         }
@@ -115,7 +115,7 @@ public class Job implements JobInterfaceX {
         try {
             // We wait for all nodes to call CallBack
             callBack.getSemaphore().acquire();
-            System.out.println("All done ! Let's request a file refresh...");
+            System.out.println("> All done ! Let's request a file refresh...");
             HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete fait
 
             // When callback frees semaphores, all nodes are done
@@ -148,7 +148,7 @@ public class Job implements JobInterfaceX {
 
     public void doReduceJob() {
 
-        System.out.println("Let's reduce " + getTempFolderPath() + this.getTempFileName());
+        System.out.println("> Let's reduce " + getTempFolderPath() + this.getTempFileName());
 
         // Create tmp folder if not existing
         Path path = Paths.get(getTempFolderPath());
@@ -160,9 +160,10 @@ public class Job implements JobInterfaceX {
 
 
         // Get the complete file from the HDFS and replace the empty file
+        System.out.println("> On telecharge les résultats des machines");
         // TODO : verifier que ça remplace bien
         HdfsClient.HdfsRead(this.getTempFileName(), getTempFolderPath() + this.getTempFileName());
-
+        System.out.println("> Telechargement termine");
         // We open the temp file
         Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
 
@@ -187,13 +188,13 @@ public class Job implements JobInterfaceX {
 
         iFormat.open(OpenMode.R);
         oFormat.open(OpenMode.W);
-
+        System.out.println("> On reduit les resulats en un seul...");
         // Do the reduce
         this.mapReduce.reduce(iFormat, oFormat);
-        System.out.println("Done ! Resultat dans " + getTempFolderPath() + this.outputFname);
+        System.out.println("> Done ! Resultat dans " + getTempFolderPath() + this.outputFname);
 
         // Delete temp file
-        System.out.println("Let's delete temporary files");
+        System.out.println("> Let's delete temporary files");
         HdfsClient.HdfsDelete(getTempFileName());
         // TODO : a tester quand ce sera implemente
     }

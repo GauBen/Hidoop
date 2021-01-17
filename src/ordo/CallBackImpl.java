@@ -23,7 +23,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
     @Override
     public void done(String id, long processDuration) throws RemoteException, InterruptedException {
         this.numberOfTasksDone.getAndAdd(1);
-        System.out.println("Le node " + id + " a fini en " + processDuration + ". Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
+        System.out.println("> Le node " + id + " a fini en " + processDuration + "ms. Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
         // Free
         if (this.numberOfTasksDone.get() == this.numberOfMaps) {
             this.semaphore.release();
@@ -33,7 +33,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
 
     @Override
     public void error(String nodeID, String texte) {
-        System.out.println("Erreur du node " + nodeID + "\n" + texte);
+        System.out.println("> /!\\ Erreur du node " + nodeID + "\n" + texte);
     }
 
     public Semaphore getSemaphore() {
