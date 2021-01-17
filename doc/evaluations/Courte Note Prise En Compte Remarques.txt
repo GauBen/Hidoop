@@ -1,0 +1,7 @@
+Groupe Hidoop (CLAVERIE / DOMINGUEZ) :
+
+1- Nous avons essayé de simplifier le lancement du projet. Tout d'abord, pour démarrer le RMI, il faut maintenant utiliser
+la classe RmiCustom ce qui résout l'accès aux classes du RMI.
+2- Les erreurs que nous avons pu reproduire affichent maintenant - en plus ou a la place de la stacktrace, un petit
+message en français qui fait gagner du temps :)
+3- Quelques commentaires ont étés ajoutés ...
