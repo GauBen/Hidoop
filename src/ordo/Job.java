@@ -206,7 +206,7 @@ public class Job implements JobInterfaceX {
         System.out.println("> On reduit les resulats en un seul...");
         // Do the reduce
         this.mapReduce.reduce(iFormat, oFormat);
-        System.out.println("> Done ! Resultat dans " + getTempFolderPath() + this.outputFname);
+        System.out.println("> Done ! Resultat dans " + getResFolderPath() + this.outputFname);
 
         // Delete temp file
         System.out.println("> Let's delete temporary files");
