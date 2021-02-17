@@ -68,6 +68,7 @@ public class HdfsClient {
 
             sock.close();
         } catch (IOException e) {
+            // TODO Gestion de l'erreur de lecture
             e.printStackTrace();
         }
     }
@@ -105,10 +106,12 @@ public class HdfsClient {
             }
 
             Object response = new ObjectInputStream(sock.getInputStream()).readObject();
+            // TODO Gestion du pong
             assert response == Action.PONG;
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
+            // TODO Gestion de l'erreur d'écriture
             e.printStackTrace();
         }
     }
@@ -129,10 +132,12 @@ public class HdfsClient {
             out.writeObject(hdfsFname);
 
             Object response = new ObjectInputStream(sock.getInputStream()).readObject();
+            // TODO Gestion du pong
             assert response == Action.PONG;
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
+            // TODO Gestion de l'erreur de suppression
             e.printStackTrace();
         }
     }
@@ -158,6 +163,7 @@ public class HdfsClient {
             return lst;
 
         } catch (IOException | ClassNotFoundException e) {
+            // TODO Gestion de l'erreur de récupération de la liste
             e.printStackTrace();
             return null;
         }
@@ -175,9 +181,11 @@ public class HdfsClient {
             // On force le rafraîchissement du catalogue
             out.writeObject(Action.FORCE_RESCAN);
 
+            // TODO Gestion du pong
             assert Action.PONG == new ObjectInputStream(in).readObject();
 
         } catch (IOException | ClassNotFoundException e) {
+            // TODO Gestion de l'erreur du rafraichissement
             e.printStackTrace();
         }
     }
@@ -230,6 +238,7 @@ public class HdfsClient {
                     HdfsWrite(fmt, args[2], 1);
             }
         } catch (Exception ex) {
+            // TODO Gestion des erreurs
             ex.printStackTrace();
         }
     }

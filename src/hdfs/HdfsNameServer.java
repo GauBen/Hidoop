@@ -202,6 +202,7 @@ public class HdfsNameServer {
                 // On traite la requête entrante
                 this.handleRequest(sock, inputStream, outputStream);
             } catch (IOException | IllegalArgumentException e) {
+                // TODO Gestion de l'erreur de connexion entrante
                 e.printStackTrace();
                 System.out.println("Une connexion a échoué.");
             }
@@ -239,6 +240,7 @@ public class HdfsNameServer {
             }
 
         } catch (ClassNotFoundException | IOException e) {
+            // TODO check ça
             e.printStackTrace();
             System.out.println("Données invalides, connexion annulée.");
         } catch (URISyntaxException e) {
@@ -302,6 +304,7 @@ public class HdfsNameServer {
         }
 
         bos.close();
+        // TODO Meilleure gestion du pong
         assert inputStream.readObject() == Action.PONG;
 
     }
@@ -313,6 +316,7 @@ public class HdfsNameServer {
             throws ClassNotFoundException, IOException {
 
         if (this.nodes.isEmpty()) {
+            // TODO propagation de l'exception
             throw new RuntimeException("0 noeud");
         }
 
@@ -328,6 +332,7 @@ public class HdfsNameServer {
             return;
         }
 
+        // TODO changer le mode d'envoi des chunks
         // Tant qu'il reste des lignes
         while (!lastPart) {
 
@@ -410,10 +415,12 @@ public class HdfsNameServer {
                 outputStream.writeObject(null);
 
                 if (inputStream.readObject() != Action.PONG) {
+                    // TODO Déconnecter les noeuds proprement
                     throw new SocketException("Noeud déconnecté.");
                 }
 
             } catch (IOException | ClassNotFoundException e) {
+                // TODO Déconnecter les noeuds proprement
                 e.printStackTrace();
             }
 
@@ -446,10 +453,12 @@ public class HdfsNameServer {
                 out.writeObject(filename);
 
                 if (in.readObject() != Action.PONG) {
+                    // TODO Déconnecter les noeuds proprement
                     throw new SocketException("Noeud déconnecté.");
                 }
 
             } catch (IOException | ClassNotFoundException e) {
+                // TODO Déconnecter les noeuds proprement
                 e.printStackTrace();
             }
         }
@@ -518,6 +527,7 @@ public class HdfsNameServer {
      * Affiche la liste des fichiers disponibles sur le réseau.
      */
     private void printFiles() {
+        // TODO Meilleur affichage
         System.out.println("Fichiers :");
         boolean empty = true;
         for (String fileName : this.files.keySet()) {
@@ -550,6 +560,7 @@ public class HdfsNameServer {
     }
 
     public static class FragmentInfo implements Serializable {
+        // TODO extraire cette classe
         private static final long serialVersionUID = -1636990109710437159L;
         public String filename;
         public int id;
@@ -591,6 +602,7 @@ public class HdfsNameServer {
         }
 
         outputStream.writeObject(list);
+        // TODO Meilleure gestion du pong
         assert inputStream.readObject() == Action.PONG;
 
     }
@@ -611,12 +623,14 @@ public class HdfsNameServer {
                 this.registerFragments(node, in.readObject());
 
             } catch (IOException | ClassNotFoundException e) {
+                // TODO Déconnecter les noeuds proprement
                 e.printStackTrace();
             }
         }
         try {
             outputStream.writeObject(Action.PONG);
         } catch (IOException e) {
+            // TODO Déconnecter les noeuds proprement
             e.printStackTrace();
         }
         this.printFiles();

@@ -60,6 +60,7 @@ public class HdfsNode {
         try {
             this.openServer();
         } catch (IOException e) {
+            // TODO Meilleur intégration avec le BiNode
             System.out.println("Impossible d'obtenir un port libre.");
             return;
         }
@@ -108,6 +109,7 @@ public class HdfsNode {
             this.externalHostname = (String) new ObjectInputStream(sock.getInputStream()).readObject();
 
         } catch (IOException | AssertionError | ClassNotFoundException e) {
+            // TODO check ça
             throw new RuntimeException("Le NameServer n'est pas joignable.");
         }
 
@@ -185,6 +187,7 @@ public class HdfsNode {
                 ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
                 HdfsNode self = this;
+                // TODO C'est propre ça ?
                 new Thread(new Runnable() {
                     public void run() {
                         self.handleRequest(sock, inputStream, outputStream);
@@ -192,6 +195,7 @@ public class HdfsNode {
                 }).start();
 
             } catch (IOException e) {
+                // TODO Abandonner la requête proprement
                 e.printStackTrace();
             }
         }
@@ -218,6 +222,7 @@ public class HdfsNode {
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+            // TODO Abandonner la requête proprement
         }
     }
 
@@ -232,6 +237,7 @@ public class HdfsNode {
         os.write(Files.readAllBytes(Path.of(file.getAbsolutePath())));
         os.close();
 
+        // TODO Gestion du pong
         assert inputStream.readObject() == Action.PONG;
         sock.close();
     }
@@ -243,10 +249,12 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         boolean lastPart = (boolean) inputStream.readObject();
 
+        // TODO Extraire la génération des noms
         Format writer = new LineFormat(new File(this.nodeRoot, fileName).getAbsolutePath() + "." + fragment
                 + (lastPart ? ".final" : "") + ".part");
         writer.open(Format.OpenMode.W);
 
+        // TODO Changer le mode d'envoi des données
         while (true) {
             KV record = (KV) inputStream.readObject();
             if (record == null) {
@@ -275,6 +283,7 @@ public class HdfsNode {
             this.files.remove(filename);
             outputStream.writeObject(Action.PONG);
         } catch (ClassNotFoundException | IOException e) {
+            // TODO Gérer proprement
             e.printStackTrace();
         }
     }
@@ -294,6 +303,7 @@ public class HdfsNode {
      * Lance le service de vérification de l'activité du NameServer.
      */
     private void runPinger() {
+        // TODO Oskour
         HdfsNode self = this;
         class Pinger implements Runnable {
             @Override
@@ -333,6 +343,7 @@ public class HdfsNode {
 
         } catch (AssertionError e) {
         } catch (IOException | ClassNotFoundException e) {
+            // TODO augmenter l'attente ?
             System.out.println("Ping : Le NameServer n'est pas joignable.");
         }
     }
