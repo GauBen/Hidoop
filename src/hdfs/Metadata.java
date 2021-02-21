@@ -20,11 +20,6 @@ public class Metadata implements Serializable {
         return this.name;
     }
 
-    @Deprecated
-    public String getFragmentName() {
-        return HdfsClient.getFragmentName(this.getName());
-    }
-
     public Type getFormat() {
         return this.format;
     }

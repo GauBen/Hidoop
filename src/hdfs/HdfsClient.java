@@ -33,17 +33,6 @@ import hdfs.HdfsNameServer.FragmentInfo;
 public class HdfsClient {
 
     /**
-     * Nom des fragements sauvegardés sur les noeuds.
-     *
-     * @param fileName Nom du fichier
-     * @return
-     */
-    @Deprecated
-    public static String getFragmentName(String fileName) {
-        return new File(fileName).getName() + ".part";
-    }
-
-    /**
      * Lecture et reconstitution d'un fichier sauvegardé sur les noeuds.
      *
      * @param hdfsFname        Nom du fichier distant
