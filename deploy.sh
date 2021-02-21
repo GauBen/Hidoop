@@ -13,7 +13,7 @@ for HOST in ${HOSTS} ; do
     ssh -l ${USERNAME} ${HOST} "${SCRIPTNETTOYAGE}"
     echo "Envoi du nouveau dossier ... "
     ssh -l ${USERNAME} ${HOST} "${SCRIPTCREATION}"
-    scp -r Hidoop $USERNAME"@"$HOST":/work/"$USERNAME"/Hidoop"
+    scp -r "../Hidoop" $USERNAME"@"$HOST":/work/"$USERNAME"/Hidoop"
 done
 echo "Done !"
 sleep 3
