@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deployer les fichiers java sur les machines ENSEEIHT
 
-USERNAME=gclaveri
+USERNAME=$USER
 HOSTS="pikachu.enseeiht.fr carapuce.enseeiht.fr salameche.enseeiht.fr"
 
 SCRIPTNETTOYAGE="rm -rf /work/"$USERNAME

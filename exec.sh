@@ -1,5 +1,5 @@
 #!/bin/bash
-USERNAME=gclaveri
+USERNAME=$USER
 HOSTS="pikachu carapuce salameche"
 
 # TODO : PAS SUR QUE $HOSTNAME MARCHE !!!
@@ -7,8 +7,11 @@ CURRENT_HOST=$HOSTNAME # Le nom du serveur qui héberge le HdfsServer et le rmis
 NameserverPort=30000
 RmiserverPort=4000
 
+CUSTOM_PATH="/work/"$USERNAME"/Hidoop"
+
+
 # Le script execute sur chaque machine - adresse du nameserver, port du nameserver, nom du dossier dans lequel y'a les fichiers de Hdfs,adresse du RMI, port du RMI
-SCRIPT=cd /work/gclaveri/Hidoop && mkdir "node" && "java application.BiNode" ${CURRENT_HOST} ${NameserverPort} "node" ${CURRENT_HOST} ${RmiserverPort}  > BiNodeLog.log
+SCRIPT=mkdir "node" && "java -cp" $CUSTOM_PATH "application.BiNode" ${CURRENT_HOST} ${NameserverPort} "node" ${CURRENT_HOST} ${RmiserverPort}  > BiNodeLog.log
 
 cd Hidoop
 
