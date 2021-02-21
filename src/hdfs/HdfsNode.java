@@ -138,37 +138,39 @@ public class HdfsNode {
         this.files = new HashMap<>();
 
         for (File f : new File(this.nodeRoot).listFiles()) {
-            // On parse le nom du fichier
-            String name = f.getName();
-            if (!f.isFile() || !name.endsWith(".part")) {
-                continue;
-            }
-            name = name.substring(0, name.length() - 5);
-            boolean lastPart = name.endsWith(".final");
-            if (lastPart) {
-                name = name.substring(0, name.length() - 6);
-            }
-            int id;
-            String originalName;
-            try {
-                int pos = name.lastIndexOf(".");
-                id = Integer.parseInt(name.substring(pos + 1));
-                originalName = name.substring(0, pos);
-            } catch (NumberFormatException e) {
-                continue;
-            }
+            synchronized (this) {
+                // On parse le nom du fichier
+                String name = f.getName();
+                if (!f.isFile() || !name.endsWith(".part")) {
+                    continue;
+                }
+                name = name.substring(0, name.length() - 5);
+                boolean lastPart = name.endsWith(".final");
+                if (lastPart) {
+                    name = name.substring(0, name.length() - 6);
+                }
+                int id;
+                String originalName;
+                try {
+                    int pos = name.lastIndexOf(".");
+                    id = Integer.parseInt(name.substring(pos + 1));
+                    originalName = name.substring(0, pos);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
 
-            // On sauvegarde le fragment
-            if (!files.containsKey(originalName)) {
-                files.put(originalName, new HashMap<>());
-            }
+                // On sauvegarde le fragment
+                if (!files.containsKey(originalName)) {
+                    files.put(originalName, new HashMap<>());
+                }
 
-            Map<Integer, File> fragmentMap = files.get(originalName);
+                Map<Integer, File> fragmentMap = files.get(originalName);
 
-            fragmentMap.put(id, f.getAbsoluteFile());
+                fragmentMap.put(id, f.getAbsoluteFile());
 
-            if (!lastPart && !fragmentMap.containsKey(id + 1)) {
-                fragmentMap.put(id + 1, null);
+                if (!lastPart && !fragmentMap.containsKey(id + 1)) {
+                    fragmentMap.put(id + 1, null);
+                }
             }
         }
 
