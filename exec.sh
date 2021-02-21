@@ -9,7 +9,7 @@ RmiserverPort=4000
 CUSTOM_PATH="/work/"$USERNAME"/Hidoop"
 
 # Le script execute sur chaque machine - adresse du nameserver, port du nameserver, nom du dossier dans lequel y'a les fichiers de Hdfs,adresse du RMI, port du RMI
-SCRIPT="java -cp $CUSTOM_PATH/src application.BiNode ${CURRENT_HOST} ${NameserverPort} ${CUSTOM_PATH}/node/ ${CURRENT_HOST} ${RmiserverPort}  > BiNodeLog.log"
+SCRIPT="java -cp $CUSTOM_PATH application.BiNode ${CURRENT_HOST} ${NameserverPort} ${CUSTOM_PATH}/node/ ${CURRENT_HOST} ${RmiserverPort}  > BiNodeLog.log"
 
 # On demarre le RMI
 java application.RmiCustom ${RMI_SERVER_PORT} &# On fait un RMI registry en tache de fond
