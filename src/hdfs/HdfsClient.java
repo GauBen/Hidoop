@@ -192,43 +192,37 @@ public class HdfsClient {
      * @param args Arguments passés au programme
      */
     public static void main(String[] args) {
-        // java HdfsClient <read|write> <line|kv> <file>
+        System.out.println("=== HDFS Client ===");
+        if (args.length == 0) {
+            usage();
+            return;
+        }
 
-        try {
-            if (args.length < 2) {
-                usage();
-                return;
-            }
-
-            switch (args[0]) {
-                case "rescan":
-                    requestRefresh();
-                    break;
-                case "read":
-                    HdfsRead(args[1], args.length < 3 ? null : args[2]);
-                    break;
-                case "delete":
-                    HdfsDelete(args[1]);
-                    break;
-                case "write":
-                    Format.Type fmt;
-                    if (args.length < 3) {
-                        usage();
-                        return;
-                    }
-                    if (args[1].equals("line"))
-                        fmt = Format.Type.LINE;
-                    else if (args[1].equals("kv"))
-                        fmt = Format.Type.KV;
-                    else {
-                        usage();
-                        return;
-                    }
-                    HdfsWrite(fmt, args[2], 1);
-            }
-        } catch (Exception ex) {
-            // TODO Gestion des erreurs
-            ex.printStackTrace();
+        switch (args[0]) {
+            case "rescan":
+                requestRefresh();
+                break;
+            case "read":
+                HdfsRead(args[1], args.length < 3 ? null : args[2]);
+                break;
+            case "delete":
+                HdfsDelete(args[1]);
+                break;
+            case "write":
+                Format.Type fmt;
+                if (args.length < 3) {
+                    usage();
+                    return;
+                }
+                if (args[1].equals("line"))
+                    fmt = Format.Type.LINE;
+                else if (args[1].equals("kv"))
+                    fmt = Format.Type.KV;
+                else {
+                    usage();
+                    return;
+                }
+                HdfsWrite(fmt, args[2], 1);
         }
     }
 
@@ -236,9 +230,11 @@ public class HdfsClient {
      * Affiche une aide textuelle.
      */
     private static void usage() {
-        System.out.println("Usage: java HdfsClient read <file> [<dest> optional]");
-        System.out.println("Usage: java HdfsClient write <line|kv> <file>");
-        System.out.println("Usage: java HdfsClient delete <file>");
+        System.out.println("Usage:");
+        System.out.println("  * HdfsClient read <file> <dest>");
+        System.out.println("  * HdfsClient write <file>");
+        System.out.println("  * HdfsClient delete <file>");
+        System.out.println("  * HdfsClient rescan");
     }
 
 }
