@@ -148,11 +148,12 @@ public class HdfsNameServer {
 
                 Socket sock = new Socket(uri.getHost(), uri.getPort());
                 sock.setSoTimeout(1000);
-                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
 
                 // On envoie ping et on attend pong
+                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
                 outputStream.writeObject(Action.PING);
+
+                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
                 if (inputStream.readObject() != Action.PONG) {
                     throw new SocketException("Noeud déconnecté.");
                 }
