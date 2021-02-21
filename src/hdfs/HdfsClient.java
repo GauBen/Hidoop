@@ -7,6 +7,7 @@
 package hdfs;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -15,15 +16,12 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import formats.Format;
-import formats.KV;
-import formats.KVFormatS;
-import formats.LineFormatS;
-import formats.Format.Type;
 import hdfs.HdfsNameServer.Action;
 import hdfs.HdfsNameServer.FragmentInfo;
 
@@ -46,15 +44,15 @@ public class HdfsClient {
             // Connexion au premier noeud
             Socket sock = newNameServerSocket();
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
-            BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
 
             // On lui envoie que l'on veut lire un fichier
-            out.writeObject(Action.READ);
             File f = new File(hdfsFname);
-            out.writeObject(new Metadata(f.getName(), Type.LINE));
+            out.writeObject(Action.READ);
+            out.writeObject(f.getName());
 
             // TODO error forwarding
 
+            BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
             Files.copy(in, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
 
             sock.close();
@@ -72,29 +70,21 @@ public class HdfsClient {
      * @param repFactor          Facteur de duplication (ignoré, toujours 1)
      */
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor) {
-        // On ouvre le fichier à envoyer
-        Format lf = fmt == Type.KV ? new KVFormatS(localFSSourceFname) : new LineFormatS(localFSSourceFname);
-        lf.open(Format.OpenMode.R);
-
         try {
-
-            // Connexion au premier noeud
+            // Connexion au serveur de nom
             Socket sock = newNameServerSocket();
-            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+            BufferedOutputStream rawOut = new BufferedOutputStream(sock.getOutputStream());
+            ObjectOutputStream out = new ObjectOutputStream(rawOut);
 
             // On l'informe qu'on veut écrire un fichier
-            out.writeObject(Action.WRITE);
             File f = new File(localFSSourceFname);
-            out.writeObject(new Metadata(f.getName(), fmt));
+            out.writeObject(Action.WRITE);
+            out.writeObject(f.getName());
 
             // On envoie le fichier
-            while (true) {
-                KV line = lf.read();
-                out.writeObject(line);
-                if (line == null) {
-                    break;
-                }
-            }
+            Files.copy(f.toPath(), rawOut);
+            rawOut.flush();
+            sock.shutdownOutput();
 
             Object response = new ObjectInputStream(sock.getInputStream()).readObject();
             // TODO Gestion du pong
@@ -166,13 +156,13 @@ public class HdfsClient {
     public static void requestRefresh() {
         try {
             Socket sock = newNameServerSocket();
-            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
 
             // On force le rafraîchissement du catalogue
+            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
             out.writeObject(Action.FORCE_RESCAN);
 
             // TODO Gestion du pong
+            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
             assert Action.PONG == new ObjectInputStream(in).readObject();
 
         } catch (IOException | ClassNotFoundException e) {

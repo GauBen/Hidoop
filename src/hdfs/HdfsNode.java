@@ -1,10 +1,8 @@
 package hdfs;
 
-import formats.Format;
-import formats.KV;
-import formats.LineFormat;
 import hdfs.HdfsNameServer.Action;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -13,6 +11,7 @@ import java.io.OutputStream;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -185,14 +184,11 @@ public class HdfsNode {
             try {
                 Socket sock = this.server.accept();
 
-                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-
                 HdfsNode self = this;
                 // TODO C'est propre ça ?
                 new Thread(new Runnable() {
                     public void run() {
-                        self.handleRequest(sock, inputStream, outputStream);
+                        self.handleRequest(sock);
                     }
                 }).start();
 
@@ -204,22 +200,24 @@ public class HdfsNode {
 
     }
 
-    private void handleRequest(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+    private void handleRequest(Socket sock) {
 
         try {
 
+            ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
             Action action = (Action) inputStream.readObject();
 
             if (action == Action.PING) {
+                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
                 outputStream.writeObject(Action.PONG);
             } else if (action == Action.WRITE) {
-                this.handleWrite(sock, inputStream, outputStream);
+                this.handleWrite(sock, inputStream);
             } else if (action == Action.READ) {
-                this.handleRead(sock, inputStream, outputStream);
+                this.handleRead(sock, inputStream);
             } else if (action == Action.DELETE) {
-                this.handleDelete(sock, inputStream, outputStream);
+                this.handleDelete(sock, inputStream);
             } else if (action == Action.FORCE_RESCAN) {
-                this.handleForceRescan(sock, inputStream, outputStream);
+                this.handleForceRescan(sock, inputStream);
             }
 
         } catch (IOException | ClassNotFoundException e) {
@@ -228,8 +226,7 @@ public class HdfsNode {
         }
     }
 
-    private void handleRead(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws ClassNotFoundException, IOException {
+    private void handleRead(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
 
         String fileName = (String) inputStream.readObject();
         int fragment = (int) inputStream.readObject();
@@ -244,35 +241,25 @@ public class HdfsNode {
         sock.close();
     }
 
-    private void handleWrite(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws ClassNotFoundException, IOException {
+    private void handleWrite(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+        BufferedInputStream rawInput = new BufferedInputStream(sock.getInputStream());
 
         String fileName = (String) inputStream.readObject();
         int fragment = (int) inputStream.readObject();
         boolean lastPart = (boolean) inputStream.readObject();
 
         // TODO Extraire la génération des noms
-        Format writer = new LineFormat(new File(this.nodeRoot, fileName).getAbsolutePath() + "." + fragment
-                + (lastPart ? ".final" : "") + ".part");
-        writer.open(Format.OpenMode.W);
-
-        // TODO Changer le mode d'envoi des données
-        while (true) {
-            KV record = (KV) inputStream.readObject();
-            if (record == null) {
-                break;
-            }
-            writer.write(record);
-        }
-
-        writer.close();
+        File f = new File(this.nodeRoot, fileName + "." + fragment + (lastPart ? ".final" : "") + ".part");
+        Files.copy(rawInput, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         outputStream.writeObject(Action.PONG);
         this.scanDir();
 
     }
 
-    private void handleDelete(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+    private void handleDelete(Socket sock, ObjectInputStream inputStream) {
         try {
             String filename = (String) inputStream.readObject();
             if (this.files.containsKey(filename)) {
@@ -283,6 +270,7 @@ public class HdfsNode {
                 }
             }
             this.files.remove(filename);
+            ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
             outputStream.writeObject(Action.PONG);
         } catch (ClassNotFoundException | IOException e) {
             // TODO Gérer proprement
@@ -295,9 +283,9 @@ public class HdfsNode {
      *
      * @throws IOException
      */
-    private void handleForceRescan(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws IOException {
+    private void handleForceRescan(Socket sock, ObjectInputStream inputStream) throws IOException {
         this.scanDir();
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
         outputStream.writeObject(this.files);
     }
 
@@ -331,11 +319,11 @@ public class HdfsNode {
             Socket sock = this.newNameServerSocket();
 
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-            ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
 
             outputStream.writeObject(Action.PING);
             outputStream.writeObject(this.server.getLocalPort());
 
+            ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
             Object answer = inputStream.readObject();
 
             if (answer != Action.PONG) {

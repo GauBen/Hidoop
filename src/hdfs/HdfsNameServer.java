@@ -6,9 +6,9 @@
 
 package hdfs;
 
-import formats.KV;
-
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -42,7 +42,7 @@ public class HdfsNameServer {
     /**
      * Nombre de lignes stockées dans le buffer.
      */
-    final public static int BUFFER_SIZE = 65536;
+    final public static int BUFFER_SIZE = 4194304;
 
     /**
      * Les actions possibles dans HDFS.
@@ -202,11 +202,9 @@ public class HdfsNameServer {
             try {
                 // On attend une connexion au serveur HDFS
                 Socket sock = this.server.accept();
-                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
                 // On traite la requête entrante
-                this.handleRequest(sock, inputStream, outputStream);
+                this.handleRequest(sock);
             } catch (IOException | IllegalArgumentException e) {
                 // TODO Gestion de l'erreur de connexion entrante
                 e.printStackTrace();
@@ -222,25 +220,26 @@ public class HdfsNameServer {
      * @param inputStream  Flux d'objets entrants
      * @param outputStream Flux d'objets sortants
      */
-    private void handleRequest(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+    private void handleRequest(Socket sock) {
         try {
+            ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
             Action action = (Action) inputStream.readObject();
 
             // On filtre l'action demandée
             if (action == Action.PING) {
-                this.handlePing(sock, inputStream, outputStream);
+                this.handlePing(sock, inputStream);
             } else if (action == Action.READ) {
-                this.handleRead(sock, inputStream, outputStream);
+                this.handleRead(sock, inputStream);
             } else if (action == Action.WRITE) {
-                this.handleWrite(sock, inputStream, outputStream);
+                this.handleWrite(sock, inputStream);
             } else if (action == Action.DELETE) {
-                this.handleDelete(sock, inputStream, outputStream);
+                this.handleDelete(sock, inputStream);
             } else if (action == Action.NEW_NODE) {
-                this.handleNewNode(sock, inputStream, outputStream);
+                this.handleNewNode(sock, inputStream);
             } else if (action == Action.LIST_FRAGMENTS) {
-                this.handleListFragments(sock, inputStream, outputStream);
+                this.handleListFragments(sock, inputStream);
             } else if (action == Action.FORCE_RESCAN) {
-                this.handleForceRescan(sock, inputStream, outputStream);
+                this.handleForceRescan(sock, inputStream);
             } else {
                 throw new IllegalArgumentException("Action invalide.");
             }
@@ -259,8 +258,10 @@ public class HdfsNameServer {
      * Réceptionne un ping. Si le noeud est connu, rien ne change, sinon on demande
      * au noeud de s'initialiser.
      */
-    private void handlePing(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+    private void handlePing(Socket sock, ObjectInputStream inputStream)
             throws IOException, ClassNotFoundException, URISyntaxException {
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
         String host = sock.getInetAddress().getHostAddress();
         int port = (Integer) inputStream.readObject();
@@ -281,17 +282,16 @@ public class HdfsNameServer {
     /**
      * Traite une requête de lecture.
      */
-    private void handleRead(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws ClassNotFoundException, IOException {
+    private void handleRead(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
 
         BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
 
-        Metadata metadata = (Metadata) inputStream.readObject();
-        if (!this.isFileComplete(metadata.getName())) {
+        String name = (String) inputStream.readObject();
+        if (!this.isFileComplete(name)) {
             throw new RuntimeException("Fichier incomplet");
         }
 
-        Map<Integer, List<URI>> file = this.files.get(metadata.getName());
+        Map<Integer, List<URI>> file = this.files.get(name);
         for (int fragment : file.keySet()) {
             URI node = file.get(fragment).get(0);
             Socket nodeSock = new Socket(node.getHost(), node.getPort());
@@ -299,17 +299,18 @@ public class HdfsNameServer {
             ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream());
 
             nodeOutputStream.writeObject(Action.READ);
-            nodeOutputStream.writeObject(metadata.getName());
+            nodeOutputStream.writeObject(name);
             nodeOutputStream.writeObject(fragment);
 
-            nodeSock.getInputStream().transferTo(bos);
+            BufferedInputStream rawInput = new BufferedInputStream(nodeSock.getInputStream());
+            rawInput.transferTo(bos);
             bos.flush();
 
             nodeOutputStream.writeObject(Action.PONG);
 
         }
 
-        bos.close();
+        sock.shutdownOutput();
         // TODO Meilleure gestion du pong
         assert inputStream.readObject() == Action.PONG;
 
@@ -318,54 +319,33 @@ public class HdfsNameServer {
     /**
      * Traite une requête d'écriture.
      */
-    private void handleWrite(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws ClassNotFoundException, IOException {
+    private void handleWrite(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
         if (this.nodes.isEmpty()) {
             // TODO propagation de l'exception
             throw new RuntimeException("0 noeud");
         }
 
-        Metadata metadata = (Metadata) inputStream.readObject();
+        BufferedInputStream rawInput = new BufferedInputStream(sock.getInputStream());
+        String name = (String) inputStream.readObject();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
-        boolean lastPart = false;
-        KV[] buffer = new KV[BUFFER_SIZE];
         int fragment = 0;
+        int input;
 
-        KV firstRecord = (KV) inputStream.readObject();
-
-        if (firstRecord == null) {
-            return;
-        }
-
-        // TODO changer le mode d'envoi des chunks
-        // Tant qu'il reste des lignes
-        while (!lastPart) {
-
-            buffer[0] = firstRecord;
-
-            for (int i = 1; i < BUFFER_SIZE; i++) {
-
-                KV record = (KV) inputStream.readObject();
-                buffer[i] = record;
-
-                if (record == null) {
-                    lastPart = true;
+        while (rawInput.available() > 0) {
+            buffer.reset();
+            buffer.write(rawInput.readNBytes(BUFFER_SIZE));
+            while ((input = rawInput.read()) != -1) {
+                buffer.write(input);
+                if ((char) input == '\n') {
                     break;
                 }
-
             }
 
-            // On veut une gestion propre de la fin du fichier si elle est sur la fin d'un
-            // fragment
-            if (!lastPart) {
-                firstRecord = (KV) inputStream.readObject();
-                if (firstRecord == null) {
-                    lastPart = true;
-                }
-            }
-
-            this.sendFragment(metadata.getName(), fragment, lastPart, buffer);
+            sendFragment(name, fragment, rawInput.available() == 0, buffer);
 
             fragment++;
         }
@@ -381,7 +361,7 @@ public class HdfsNameServer {
      * @param lastPart
      * @param buffer
      */
-    private void sendFragment(String fileName, int fragment, boolean lastPart, KV[] buffer) {
+    private void sendFragment(String fileName, int fragment, boolean lastPart, ByteArrayOutputStream bytes) {
 
         // Nombre de noeuds sur lesquels chaque fragment est stocké
         // La fonctionnalité est implémentée, bien qu'inaccessible
@@ -405,21 +385,19 @@ public class HdfsNameServer {
                 Socket sock;
                 sock = new Socket(node.getHost(), node.getPort());
                 sock.setSoTimeout(1000);
-                ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
+                BufferedOutputStream rawOutputStream = new BufferedOutputStream(sock.getOutputStream());
+                ObjectOutputStream outputStream = new ObjectOutputStream(rawOutputStream);
 
                 outputStream.writeObject(Action.WRITE);
                 outputStream.writeObject(fileName);
                 outputStream.writeObject(fragment);
                 outputStream.writeObject(lastPart);
-                for (KV record : buffer) {
-                    if (record == null) {
-                        break;
-                    }
-                    outputStream.writeUnshared(record);
-                }
-                outputStream.writeObject(null);
+                bytes.writeTo(rawOutputStream);
 
+                rawOutputStream.flush();
+                sock.shutdownOutput();
+
+                ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
                 if (inputStream.readObject() != Action.PONG) {
                     // TODO Déconnecter les noeuds proprement
                     throw new SocketException("Noeud déconnecté.");
@@ -443,8 +421,7 @@ public class HdfsNameServer {
     /**
      * Traite une requête de suppression.
      */
-    private void handleDelete(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
-            throws ClassNotFoundException, IOException {
+    private void handleDelete(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
         String filename = (String) inputStream.readObject();
         for (URI uri : new ArrayList<>(this.nodes)) {
 
@@ -452,12 +429,12 @@ public class HdfsNameServer {
 
                 Socket nodeSock = new Socket(uri.getHost(), uri.getPort());
                 ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
-                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
 
                 // On envoie le nom du fichier à delete
                 out.writeObject(Action.DELETE);
                 out.writeObject(filename);
 
+                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
                 if (in.readObject() != Action.PONG) {
                     // TODO Déconnecter les noeuds proprement
                     throw new SocketException("Noeud déconnecté.");
@@ -469,6 +446,8 @@ public class HdfsNameServer {
             }
         }
         this.files.remove(filename);
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
         outputStream.writeObject(Action.PONG);
     }
 
@@ -476,8 +455,10 @@ public class HdfsNameServer {
      * Traite une requête de nouveau noeud, en récupérant son port et la liste de
      * ses fichiers
      */
-    private void handleNewNode(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+    private void handleNewNode(Socket sock, ObjectInputStream inputStream)
             throws IOException, ClassNotFoundException, URISyntaxException {
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
         String host = sock.getInetAddress().getHostAddress();
         int port = (int) inputStream.readObject();
@@ -591,8 +572,11 @@ public class HdfsNameServer {
         }
     }
 
-    private void handleListFragments(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream)
+    private void handleListFragments(Socket sock, ObjectInputStream inputStream)
             throws ClassNotFoundException, IOException {
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+
         String filename = (String) inputStream.readObject();
         if (!this.isFileComplete(filename)) {
             outputStream.writeObject(null);
@@ -615,17 +599,19 @@ public class HdfsNameServer {
 
     /**
      * Traite une demande de mise à jour de la liste des fichiers.
+     *
+     * @throws IOException
      */
-    private void handleForceRescan(Socket sock, ObjectInputStream inputStream, ObjectOutputStream outputStream) {
+    private void handleForceRescan(Socket sock, ObjectInputStream inputStream) throws IOException {
         this.files = new HashMap<>();
 
         for (URI node : this.nodes) {
             try {
                 Socket nodeSock = new Socket(node.getHost(), node.getPort());
                 ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
-                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
-
                 out.writeObject(Action.FORCE_RESCAN);
+
+                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
                 this.registerFragments(node, in.readObject());
 
             } catch (IOException | ClassNotFoundException e) {
@@ -633,12 +619,10 @@ public class HdfsNameServer {
                 e.printStackTrace();
             }
         }
-        try {
-            outputStream.writeObject(Action.PONG);
-        } catch (IOException e) {
-            // TODO Déconnecter les noeuds proprement
-            e.printStackTrace();
-        }
+
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+        outputStream.writeObject(Action.PONG);
+
         this.printFiles();
     }
 
