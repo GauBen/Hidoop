@@ -12,7 +12,7 @@ CUSTOM_PATH="/work/"$USERNAME"/Hidoop"
 SCRIPT="java -cp $CUSTOM_PATH application.BiNode ${CURRENT_HOST} ${NameserverPort} ${CUSTOM_PATH}/node/ ${CURRENT_HOST} ${RmiserverPort}  > BiNodeLog.log"
 
 # On demarre le RMI
-java -cp $CUSTOM_PATH application.RmiCustom ${RMI_SERVER_PORT} &# On fait un RMI registry en tache de fond
+java -cp $CUSTOM_PATH application.RmiCustom $RmiserverPort & # On fait un RMI registry en tache de fond
 
 # Execution des commandes sur les machines distantes
 for HOST in ${HOSTS}; do
