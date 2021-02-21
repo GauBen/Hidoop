@@ -18,7 +18,7 @@ cd Hidoop
 # On demarre le RMI
 java application.RmiCustom ${RmiserverPort} & # On fait un RMI registry en tache de fond
 
-java "hdfs.HdfsNameServer" # TODO : ajouter les arguments
+java "hdfs.HdfsNameServer" $NameserverPort
 
 # Execution des commandes sur les machines distantes
 for HOST in ${HOSTS} ; do
