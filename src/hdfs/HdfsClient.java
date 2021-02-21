@@ -53,11 +53,13 @@ public class HdfsClient {
             File f = new File(hdfsFname);
             out.writeObject(new Metadata(f.getName(), Type.LINE));
 
-            Files.write(Path.of(localFSDestFname), in.readAllBytes());
+            // TODO error forwarding
+
+            Files.copy(in, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
 
             sock.close();
         } catch (IOException e) {
-            // TODO Gestion de l'erreur de lecture
+            System.err.println("La lecture a échoué.");
             e.printStackTrace();
         }
     }
