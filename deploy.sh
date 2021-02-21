@@ -26,7 +26,7 @@ for HOST in ${HOSTS}; do
   ssh "$USERNAME@$HOST" "$SCRIPT_NETTOYAGE"
   echo "Envoi du nouveau dossier..."
   ssh "$USERNAME@$HOST" "$SCRIPT_CREATION"
-  scp -qr "../Hidoop" "$USERNAME@$HOST:$WORK_DIR"
+  scp -qr $WORK_DIR "$USERNAME@$HOST:$WORK_DIR"
   ssh "$USERNAME@$HOST" "$SCRIPT_CREATION_DOSSIER_NODE"
 done
 
