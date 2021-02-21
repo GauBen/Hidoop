@@ -25,6 +25,11 @@ import java.util.Map.Entry;
 public class HdfsNameServer {
 
     /**
+     * Nom d'hôte par défaut du serveur.
+     */
+    final public static String DEFAULT_HOST = "127.0.0.1";
+
+    /**
      * Port par défaut du serveur.
      */
     final public static int DEFAULT_PORT = 51200;

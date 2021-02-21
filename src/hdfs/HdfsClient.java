@@ -183,7 +183,7 @@ public class HdfsClient {
      * @return Une socket ouverte sur le NameServer HDFS
      */
     private static Socket newNameServerSocket() throws UnknownHostException, IOException {
-        return new Socket("127.0.0.1", HdfsNameServer.DEFAULT_PORT);
+        return new Socket(HdfsNameServer.DEFAULT_HOST, HdfsNameServer.DEFAULT_PORT);
     }
 
     /**
