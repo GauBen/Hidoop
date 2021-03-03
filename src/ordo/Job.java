@@ -36,7 +36,7 @@ public class Job implements JobInterfaceX {
     Format.Type outputFormat;
     String outputFname;
     SortComparator sortComparator;
-    
+
     FragmentsHandler fragmentsHandler;
 
     public static Job job;
@@ -78,7 +78,7 @@ public class Job implements JobInterfaceX {
         // Get all fragments
 
         List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); // TODO : fix sur intellij
-        
+
         this.fragmentsHandler = new FragmentsHandler(fragments);
 
         if (fragments == null) {
@@ -98,17 +98,15 @@ public class Job implements JobInterfaceX {
         }
 
 
-
-
-        for(URI workerUri : fragmentsHandler.getAllWorkers()) {
+        for (URI workerUri : fragmentsHandler.getAllWorkers()) {
 
             try {
                 Worker worker = (Worker) Naming.lookup(WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
-                workerUri.getHost(), workerUri.getPort()));
-                for(int i = 0; i < worker.getNumberOfCores(); i++){
+                        workerUri.getHost(), workerUri.getPort()));
+                for (int i = 0; i < worker.getNumberOfCores(); i++) {
                     FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
-                    
-                    if(info != null){
+
+                    if (info != null) {
 
                         // Set the Format
                         Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());

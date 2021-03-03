@@ -39,7 +39,7 @@ public class FragmentsHandler {
 
     /**
      * Called when a node is looking for a new job
-     * 
+     *
      * @param uri
      * @return FragmentInfo | null
      */
@@ -58,5 +58,5 @@ public class FragmentsHandler {
         return this.allFragments.keySet();
     }
 
-    
+
 }
