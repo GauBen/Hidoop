@@ -169,4 +169,9 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     }
 
+    @Override
+    public int getNumberOfCores() throws RemoteException {
+        return Runtime.getRuntime().availableProcessors();
+    }
+
 }

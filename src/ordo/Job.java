@@ -36,7 +36,11 @@ public class Job implements JobInterfaceX {
     Format.Type outputFormat;
     String outputFname;
     SortComparator sortComparator;
-    // private int numberOfMapsDone = 0;
+    
+    FragmentsHandler fragmentsHandler;
+
+    public static Job job;
+
 
     public Job() {
         super();
@@ -45,6 +49,8 @@ public class Job implements JobInterfaceX {
         this.numberOfReduces = 1;
 
         this.outputFormat = Format.Type.KV;
+
+        Job.job = this;
     }
 
     /**
@@ -59,7 +65,7 @@ public class Job implements JobInterfaceX {
     /**
      * Path du dossier qui contient lres resultats finaux
      *
-     * @return Stirng
+     * @return String
      */
     public static String getResFolderPath() {
         return System.getProperty("user.dir") + "/res/";
@@ -72,6 +78,8 @@ public class Job implements JobInterfaceX {
         // Get all fragments
 
         List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); // TODO : fix sur intellij
+        
+        this.fragmentsHandler = new FragmentsHandler(fragments);
 
         if (fragments == null) {
             System.out.println("Le fichier n'a pas ete trouve dans le HDFS!");
@@ -89,32 +97,36 @@ public class Job implements JobInterfaceX {
             return;
         }
 
-        // Connect to all node
-        // TODO : ATTENTION AUX NOMS DES NODES
-        // int n = 0;
-        for (FragmentInfo fragment : fragments) {
 
-            URI addresseDuFragment = fragment.node;
+
+
+        for(URI workerUri : fragmentsHandler.getAllWorkers()) {
 
             try {
-                // Get the worker associated with the HDFS (and thus with the fragment)
                 Worker worker = (Worker) Naming.lookup(WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
-                        addresseDuFragment.getHost(), addresseDuFragment.getPort()));
+                workerUri.getHost(), workerUri.getPort()));
+                for(int i = 0; i < worker.getNumberOfCores(); i++){
+                    FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+                    
+                    if(info != null){
 
-                // Set the Format
-                Format iFormat = this.getFormatFromType(this.inputFormat, fragment.getAbsolutePath());
+                        // Set the Format
+                        Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());
 
-                // TODO : tester quand la méthode sera définie
-                FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart,
-                        fragment.node, fragment.root);
+                        // TODO : tester quand la méthode sera définie
+                        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart,
+                                info.node, info.root);
 
-                Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
+                        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
 
-                worker.runMap(mr, iFormat, oFormat, callBack);
+                        worker.runMap(mr, iFormat, oFormat, callBack);
 
+                    }
+
+                }
 
             } catch (NotBoundException e) {
-                System.out.println("> Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
+                System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
                 return;
             } catch (MalformedURLException | RemoteException e) {
                 e.printStackTrace();
@@ -124,19 +136,17 @@ public class Job implements JobInterfaceX {
             }
         }
 
-        try {
-            // We wait for all nodes to call CallBack
-            callBack.getSemaphore().acquire();
-            System.out.println("> All done ! Let's request a file refresh...");
-            HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete fait
+    }
 
-            // When callback frees semaphores, all nodes are done
-            this.doReduceJob();
+    /**
+     * Called by Callback when all workers are done
+     */
+    public void allWorkersAreDone() {
+        System.out.println("> All done ! Let's request a file refresh...");
+        HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete creer
 
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        // When callback frees semaphores, all nodes are done
+        this.doReduceJob();
     }
 
     /**

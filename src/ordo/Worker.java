@@ -8,4 +8,6 @@ import formats.Format;
 
 public interface Worker extends Remote {
     public void runMap(Mapper m, Format reader, Format writer, CallBack cb) throws RemoteException;
+
+    public int getNumberOfCores() throws RemoteException;
 }

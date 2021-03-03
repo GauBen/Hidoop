@@ -26,7 +26,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
         System.out.println("> Le node " + id + " a fini en " + processDuration + "ms. Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
         // Free
         if (this.numberOfTasksDone.get() == this.numberOfMaps) {
-            this.semaphore.release();
+            Job.job.allWorkersAreDone();
         }
 
     }
