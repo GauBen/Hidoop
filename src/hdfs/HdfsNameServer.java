@@ -17,6 +17,7 @@ import java.io.Serializable;
 import java.net.*;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Serveur HDFS, capable d'initier des opérations distribuées de lecture,
@@ -583,12 +584,14 @@ public class HdfsNameServer {
             return;
         }
 
-        List<FragmentInfo> list = new ArrayList<>();
+        List<List<FragmentInfo>> list = new ArrayList<>();
         Map<Integer, List<URI>> fragments = this.files.get(filename);
         int lastFragment = Collections.max(fragments.keySet());
         for (int id : fragments.keySet()) {
-            URI node = fragments.get(id).get(0);
-            list.add(new FragmentInfo(filename, id, id == lastFragment, node, this.roots.get(node)));
+            List<URI> node = fragments.get(id);
+            list.add(node.stream()
+                    .map(uri -> new FragmentInfo(filename, id, id == lastFragment, uri, this.roots.get(uri)))
+                    .collect(Collectors.toList()));
         }
 
         outputStream.writeObject(list);

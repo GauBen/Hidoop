@@ -20,6 +20,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import formats.Format;
 import hdfs.HdfsNameServer.Action;
@@ -123,7 +124,7 @@ public class HdfsClient {
         }
     }
 
-    public static List<FragmentInfo> listFragments(String hdfsFilename) {
+    public static List<List<FragmentInfo>> listFragments(String hdfsFilename) {
         try {
             Socket sock = newNameServerSocket();
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
@@ -134,10 +135,10 @@ public class HdfsClient {
 
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
 
-            List<FragmentInfo> lst = new ArrayList<>();
+            List<List<FragmentInfo>> lst = new ArrayList<>();
             for (Object i : (List<?>) in.readObject()) {
                 Objects.requireNonNull(i);
-                lst.add((FragmentInfo) i);
+                lst.add(((List<?>) i).stream().map(obj -> (FragmentInfo) obj).collect(Collectors.toList()));
             }
 
             out.writeObject(Action.PONG);
