@@ -24,7 +24,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
     @Override
     public void done(URI workerUri, long processDuration) throws RemoteException, InterruptedException {
         this.numberOfTasksDone.getAndAdd(1);
-        System.out.println("> Le node " + id + " a fini en " + processDuration + "ms. Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
+        System.out.println("> Le node " + workerUri + " a fini en " + processDuration + "ms. Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
         // Free
         if (this.numberOfTasksDone.get() == this.numberOfMaps) {
             Job.job.allWorkersAreDone();
