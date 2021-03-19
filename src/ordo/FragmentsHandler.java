@@ -1,9 +1,12 @@
 package ordo;
 
-import java.net.URI;
-import java.util.*;
-
 import hdfs.HdfsNameServer.FragmentInfo;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 
 public class FragmentsHandler {
 
@@ -14,24 +17,17 @@ public class FragmentsHandler {
     /**
      * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID
      */
-    private HashMap<URI, List<FragmentInfo>> allFragments = new HashMap<>();
-
-    /**
-     * Set of all URIs.
-     */
-    private Set<URI> allUri = new HashSet<>();
+    private final HashMap<URI, List<FragmentInfo>> allFragments = new HashMap<>();
 
     /**
      * Stocke l'etat des fragments (Traite, en cours de traitement, disponible)
      */
-    private HashMap<Integer, Integer> fragmentsStates = new HashMap<>();
+    private final HashMap<Integer, Integer> fragmentsStates = new HashMap<>();
 
     public FragmentsHandler(List<FragmentInfo> allFragments) {
         for (FragmentInfo info : allFragments) {
             int id = info.id;
             URI uri = info.node;
-
-            this.allUri.add(uri);
 
             if (this.allFragments.get(uri) == null) {
                 this.allFragments.put(uri, new ArrayList<>());
@@ -56,16 +52,6 @@ public class FragmentsHandler {
             }
         }
 
-        return null;
-    }
-
-    public URI getUriFromAddress(String ip, int port){
-        for (URI uri : this.allUri){
-            if(uri.getHost() == ip && uri.getPort() == port){
-                return uri;
-            }
-        }
-        System.out.println("Correspondance adresse - URI non trouvée !");
         return null;
     }
 

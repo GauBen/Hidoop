@@ -77,9 +77,11 @@ public class Job implements JobInterfaceX {
     public void startJob(MapReduce mr) {
         this.mapReduce = mr;
 
+        List<List<FragmentInfo>> fragmentsTable = HdfsClient.listFragments(this.inputFname);
+
         // Get all fragments
         // On transforme les fragments sous forme de liste
-        List<FragmentInfo> fragments = Objects.requireNonNull(HdfsClient.listFragments(this.inputFname))
+        List<FragmentInfo> fragments = Objects.requireNonNull(fragmentsTable)
                 .stream().flatMap(List::stream).collect(Collectors.toList()); // TODO : Verifier
 
         this.fragmentsHandler = new FragmentsHandler(fragments);
@@ -89,7 +91,7 @@ public class Job implements JobInterfaceX {
             System.exit(11);
         }
 
-        this.numberOfMaps = fragments.size(); // One fragm ent = one runmap
+        this.numberOfMaps = fragmentsTable.size(); // One fragment = one runmap
 
         // Define the callback used to know when a worker is done
         CallBackImpl callBack;
@@ -102,8 +104,6 @@ public class Job implements JobInterfaceX {
 
 
         for (URI workerUri : fragmentsHandler.getAllWorkers()) {
-
-
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
@@ -117,9 +117,6 @@ public class Job implements JobInterfaceX {
             } catch (RemoteException e) {
                 System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
             }
-
-
-
         }
 
     }
