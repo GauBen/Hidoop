@@ -8,6 +8,8 @@ import map.Mapper;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -24,10 +26,16 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     public String id;
 
+    public URI uri;
+
     public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
-            throws RemoteException {
+            throws RemoteException, URISyntaxException {
         super();
         this.id = hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
+
+
+        this.uri = new URI("hdfs://" + hostDistantDuNoeudHdfs + ":" + portDuNodeHdfs);
+
         try {
 
             Registry registry = LocateRegistry.getRegistry(hostDuRmi, portDuRmi);
@@ -113,7 +121,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
         try {
             new WorkerImpl(hostDuRmi, portDuRmi, hostDuNoeudHdfs, portDuNoeudHdfs);
-        } catch (RemoteException e1) {
+        } catch (RemoteException | URISyntaxException e1) {
             e1.printStackTrace();
         }
 
@@ -149,7 +157,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
                     try {
                         long endTime = System.currentTimeMillis();
-                        cb.done(id, endTime - startTime);
+                        cb.done(WorkerImpl.this.uri, endTime - startTime);
                     } catch (RemoteException | InterruptedException e) {
                         e.printStackTrace();
                     }

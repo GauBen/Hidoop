@@ -19,6 +19,8 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Job implements JobInterfaceX {
     // TODO
@@ -76,8 +78,9 @@ public class Job implements JobInterfaceX {
         this.mapReduce = mr;
 
         // Get all fragments
-
-        List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); // TODO : fix sur intellij
+        // On transforme les fragments sous forme de liste
+        List<FragmentInfo> fragments = Objects.requireNonNull(HdfsClient.listFragments(this.inputFname))
+                .stream().flatMap(List::stream).collect(Collectors.toList()); // TODO : Verifier
 
         this.fragmentsHandler = new FragmentsHandler(fragments);
 
@@ -100,41 +103,77 @@ public class Job implements JobInterfaceX {
 
         for (URI workerUri : fragmentsHandler.getAllWorkers()) {
 
+
+            Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
-                Worker worker = (Worker) Naming.lookup(WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
-                        workerUri.getHost(), workerUri.getPort()));
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
                     FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
                     if (info != null) {
-
-                        // Set the Format
-                        Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());
-
-                        // TODO : tester quand la méthode sera définie
-                        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart,
-                                info.node, info.root);
-
-                        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
-
-                        worker.runMap(mr, iFormat, oFormat, callBack);
-
+                        this.executeWork(worker, info, callBack);
                     }
 
                 }
-
-            } catch (NotBoundException e) {
-                System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
-                return;
-            } catch (MalformedURLException | RemoteException e) {
-                e.printStackTrace();
-                System.out.println(
-                        "> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
-                return;
+            } catch (RemoteException e) {
+                System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
             }
+
+
+
         }
 
     }
+
+    public void attributeNewWorkTo(URI workerUri, CallBack callBack) {
+        FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+
+        Worker worker = getWorkerFromUri(workerUri);
+
+        if (fragment != null && worker != null) {
+            // On demarre le traitement du fragment sur le node associe
+            // TODO: si le fragment ne démarre pas bien, il faut marquer le fragment comme "NON TRAITE" au lieu de "EN COURS"
+
+            this.executeWork(worker, fragment, callBack);
+
+        }
+    }
+
+    private void executeWork(Worker worker, FragmentInfo info, CallBack callBack) {
+
+        // Set the Format
+        Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());
+
+        // TODO : tester quand la méthode sera définie
+        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart,
+                info.node, info.root);
+
+        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
+
+        try {
+            worker.runMap(this.mapReduce, iFormat, oFormat, callBack);
+        } catch (RemoteException e) {
+            System.out.println("Impossible de demarrer le runMap sur le worker ! ");
+        }
+
+
+    }
+
+
+    private Worker getWorkerFromUri(URI workerUri) {
+        try {
+            return (Worker) Naming.lookup(WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
+                    workerUri.getHost(), workerUri.getPort()));
+
+        } catch (NotBoundException e) {
+            System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
+        } catch (MalformedURLException | RemoteException e) {
+            e.printStackTrace();
+            System.out.println(
+                    "> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
+        }
+        return null;
+    }
+
 
     /**
      * Called by Callback when all workers are done
