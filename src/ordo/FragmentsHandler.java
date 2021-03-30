@@ -16,8 +16,9 @@ public class FragmentsHandler {
 
     /**
      * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID
+     * La String represente l'URI
      */
-    private final HashMap<URI, List<FragmentInfo>> allFragments = new HashMap<>();
+    private final HashMap<String, List<FragmentInfo>> allFragments = new HashMap<>();
 
     /**
      * Stocke l'etat des fragments (Traite, en cours de traitement, disponible)
@@ -29,11 +30,11 @@ public class FragmentsHandler {
             int id = info.id;
             URI uri = info.node;
 
-            if (this.allFragments.get(uri) == null) {
-                this.allFragments.put(uri, new ArrayList<>());
+            if (this.allFragments.get(uri.toString()) == null) {
+                this.allFragments.put(uri.toString(), new ArrayList<>());
                 this.fragmentsStates.put(id, STATE_NOT_PROCESSED);
             }
-            this.allFragments.get(uri).add(info);
+            this.allFragments.get(uri.toString()).add(info);
 
         }
     }
@@ -44,7 +45,7 @@ public class FragmentsHandler {
      * @param uri
      * @return FragmentInfo | null
      */
-    public FragmentInfo getAvailableFragmentForURI(URI uri) {
+    public FragmentInfo getAvailableFragmentForURI(String uri) {
         for (FragmentInfo info : this.allFragments.get(uri)) {
             if (this.fragmentsStates.get(info.id) == STATE_NOT_PROCESSED) {
                 this.fragmentsStates.put(info.id, STATE_IN_PROGRESS);
@@ -55,7 +56,7 @@ public class FragmentsHandler {
         return null;
     }
 
-    public Set<URI> getAllWorkers() {
+    public Set<String> getAllWorkers() {
         return this.allFragments.keySet();
     }
 
