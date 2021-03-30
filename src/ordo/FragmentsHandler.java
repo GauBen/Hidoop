@@ -3,10 +3,8 @@ package ordo;
 import hdfs.HdfsNameServer.FragmentInfo;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FragmentsHandler {
 
@@ -16,7 +14,7 @@ public class FragmentsHandler {
 
     /**
      * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID
-     * La String represente l'URI
+     * La string correspond à URI.toString
      */
     private final HashMap<String, List<FragmentInfo>> allFragments = new HashMap<>();
 
@@ -30,7 +28,7 @@ public class FragmentsHandler {
             int id = info.id;
             URI uri = info.node;
 
-            if (this.allFragments.get(uri.toString()) == null) {
+            if (this.allFragments.get(uri) == null) {
                 this.allFragments.put(uri.toString(), new ArrayList<>());
                 this.fragmentsStates.put(id, STATE_NOT_PROCESSED);
             }
@@ -45,8 +43,8 @@ public class FragmentsHandler {
      * @param uri
      * @return FragmentInfo | null
      */
-    public FragmentInfo getAvailableFragmentForURI(String uri) {
-        for (FragmentInfo info : this.allFragments.get(uri)) {
+    public FragmentInfo getAvailableFragmentForURI(URI uri) {
+        for (FragmentInfo info : this.allFragments.get(uri.toString())) {
             if (this.fragmentsStates.get(info.id) == STATE_NOT_PROCESSED) {
                 this.fragmentsStates.put(info.id, STATE_IN_PROGRESS);
                 return info;
@@ -56,8 +54,18 @@ public class FragmentsHandler {
         return null;
     }
 
-    public Set<String> getAllWorkers() {
-        return this.allFragments.keySet();
+    /**
+     * Get the URI of all Workers
+     * @return
+     */
+    public Set<URI> getAllWorkers() {
+        Set<URI> allWorkers= new HashSet<>();
+        // Transform allFragments to a list
+        for(FragmentInfo info : this.allFragments.values().stream().flatMap(List::stream).collect(Collectors.toList())){
+            allWorkers.add(info.node);
+        }
+
+        return allWorkers;
     }
 
 

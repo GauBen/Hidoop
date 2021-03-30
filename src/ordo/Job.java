@@ -103,8 +103,8 @@ public class Job implements JobInterfaceX {
         }
 
 
-        for (String workerUri : fragmentsHandler.getAllWorkers()) {
-            Worker worker = this.getWorkerFromUri(workerUri);
+        for (URI workerUri : fragmentsHandler.getAllWorkers()) {
+            Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
                     FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
@@ -122,9 +122,9 @@ public class Job implements JobInterfaceX {
     }
 
     public void attributeNewWorkTo(URI workerUri, CallBack callBack) {
-        FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri.toString());
+        FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
-        Worker worker = getWorkerFromUri(workerUri.toString());
+        Worker worker = getWorkerFromUri(workerUri);
 
         if (fragment != null && worker != null) {
             // On demarre le traitement du fragment sur le node associe
@@ -156,12 +156,11 @@ public class Job implements JobInterfaceX {
     }
 
 
-    private Worker getWorkerFromUri(String workerUri) {
+    private Worker getWorkerFromUri(URI workerUri) {
+        String address = WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
+                workerUri.getHost(), workerUri.getPort());
         try {
-            return (Worker) Naming.lookup(workerUri);//TODO : check that it's OK
-            // WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
-                //    workerUri.getHost(), workerUri.getPort()));
-
+            return (Worker) Naming.lookup(address.replace("hdfs://", ""));
         } catch (NotBoundException e) {
             System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
         } catch (MalformedURLException | RemoteException e) {
