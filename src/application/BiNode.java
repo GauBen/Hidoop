@@ -3,6 +3,7 @@ package application;
 import hdfs.HdfsNode;
 import ordo.WorkerImpl;
 
+import java.net.URISyntaxException;
 import java.rmi.RemoteException;
 
 public class BiNode {
@@ -25,7 +26,7 @@ public class BiNode {
                 try {
                     new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
                             hdfsNode.getServer().getLocalPort());
-                } catch (RemoteException e) {
+                } catch (RemoteException | URISyntaxException e) {
                     e.printStackTrace();
                     System.out.println("Echec du lancement du worker");
                 }
