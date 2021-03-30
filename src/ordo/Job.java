@@ -161,9 +161,9 @@ public class Job implements JobInterfaceX {
                 workerUri.getHost(), workerUri.getPort());
         try {
             return (Worker) Naming.lookup(address.replace("hdfs://", ""));
-        } catch (NotBoundException e) {
+        } catch (MalformedURLException | NotBoundException e) {
             System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
-        } catch (MalformedURLException | RemoteException e) {
+        } catch (RemoteException e) {
             e.printStackTrace();
             System.out.println(
                     "> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
