@@ -23,8 +23,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -60,9 +62,9 @@ public class HdfsNameServer {
     private ServerSocket server;
 
     /**
-     * Liste des noeuds.
+     * Ensemble des noeuds.
      */
-    private volatile List<URI> nodes = new ArrayList<>();
+    private volatile Set<URI> nodes = new HashSet<>();
 
     /**
      * Liste des racines des noeuds.
@@ -126,7 +128,7 @@ public class HdfsNameServer {
         // Nombre de noeuds supprimés
         int removed = 0;
 
-        for (URI uri : new ArrayList<>(this.nodes)) {
+        for (URI uri : new HashSet<>(this.nodes)) {
 
             try {
 
@@ -168,7 +170,6 @@ public class HdfsNameServer {
     private void removeNode(URI uri) {
 
         this.nodes.remove(uri);
-        this.roots.remove(uri);
 
         for (Map<Integer, List<URI>> map : this.files.values()) {
             for (List<URI> list : map.values()) {
@@ -407,7 +408,7 @@ public class HdfsNameServer {
      */
     private void handleDelete(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
         String filename = (String) inputStream.readObject();
-        for (URI uri : new ArrayList<>(this.nodes)) {
+        for (URI uri : new HashSet<>(this.nodes)) {
 
             try {
 
