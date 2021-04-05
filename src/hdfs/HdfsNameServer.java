@@ -87,18 +87,20 @@ public class HdfsNameServer {
      * Initialise un noeud HDFS
      */
     public HdfsNameServer(int port) {
+        System.out.println();
         try {
             this.server = new ServerSocket(port);
-            System.out.println();
             System.out.println("Initialisation :");
             System.out.println("* Serveur principal lancé sur le port " + this.server.getLocalPort());
-            System.out.println("* Ctrl+C pour arrêter le serveur");
-            System.out.println();
             this.runPinger();
+            System.out.println("* Service de ping démarré");
+            System.out.println("[Ctrl+C pour arrêter le serveur]");
+            System.out.println();
             this.runListener();
         } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("Impossible de lancer le serveur, le port est peut-être occupé.");
+            System.err
+                    .println("Impossible de lancer le serveur sur le port " + port + ", le port est peut-être occupé.");
+            throw new HdfsRuntimeException(e);
         }
     }
 
