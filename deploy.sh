@@ -18,8 +18,8 @@ echo "Ok !"
 
 # Nettoyage et upload du projet Hidoop
 SCRIPT_NETTOYAGE="rm -rf /work/"$USERNAME
-SCRIPT_CREATION="mkdir /work/"$USERNAME
-SCRIPT_CREATION_DOSSIER_NODE="mkdir /work/"$USERNAME/"Hidoop/node"
+SCRIPT_CREATION="mkdir -p /work/"$USERNAME
+SCRIPT_CREATION_DOSSIER_NODE="mkdir -p /work/"$USERNAME/"Hidoop/node"
 
 for HOST in ${HOSTS}; do
   echo "On nettoie " $HOST
