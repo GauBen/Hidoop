@@ -120,7 +120,7 @@ public class HdfsNameServer {
             this.runListener();
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("Impossible de lancer le serveur, le port est peut-être occupé.");
+            System.err.println("Impossible de lancer le serveur, le port est peut-être occupé.");
         }
     }
 
@@ -170,7 +170,7 @@ public class HdfsNameServer {
 
             } catch (IOException | ClassNotFoundException e) {
 
-                System.out.println("Ping : noeud " + uri + " déconnecté...");
+                System.err.println("Ping : noeud " + uri + " déconnecté...");
 
                 this.removeNode(uri);
                 removed++;
@@ -218,7 +218,7 @@ public class HdfsNameServer {
             } catch (IOException | IllegalArgumentException e) {
                 // TODO Gestion de l'erreur de connexion entrante
                 e.printStackTrace();
-                System.out.println("Une connexion a échoué.");
+                System.err.println("Une connexion a échoué.");
             }
         }
     }
@@ -257,10 +257,10 @@ public class HdfsNameServer {
         } catch (ClassNotFoundException | IOException e) {
             // TODO check ça
             e.printStackTrace();
-            System.out.println("Données invalides, connexion annulée.");
+            System.err.println("Données invalides, connexion annulée.");
         } catch (URISyntaxException e) {
             e.printStackTrace();
-            System.out.println("Problème d'adresse d'un noeud");
+            System.err.println("Problème d'adresse d'un noeud");
         }
     }
 
@@ -283,7 +283,7 @@ public class HdfsNameServer {
             outputStream.writeObject(Action.PONG);
         } else {
             // On informe le noeud qu'il n'est pas initialisé
-            System.out.println("Pong : Le ping provient d'un noeud inconnu...");
+            System.err.println("Pong : Le ping provient d'un noeud inconnu...");
             outputStream.writeObject(Action.UNKNOWN_NODE);
         }
 
