@@ -128,20 +128,18 @@ public class HdfsNameServer {
      * Crée un thread qui vérifie que les noeuds sont actifs.
      */
     private void runPinger() {
-        HdfsNameServer self = this;
-        class Pinger implements Runnable {
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
-                    self.sendPing();
+                    HdfsNameServer.this.sendPing();
                     try {
                         Thread.sleep(PING_INTERVAL);
                     } catch (InterruptedException e) {
                     }
                 }
             }
-        }
-        new Thread(new Pinger()).start();
+        }).start();
     }
 
     /**
