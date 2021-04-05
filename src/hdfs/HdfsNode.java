@@ -1,7 +1,5 @@
 package hdfs;
 
-import hdfs.HdfsNameServer.Action;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -100,7 +98,7 @@ public class HdfsNode {
 
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
-            outputStream.writeObject(Action.NEW_NODE);
+            outputStream.writeObject(HdfsAction.NEW_NODE);
             outputStream.writeObject(this.server.getLocalPort());
             outputStream.writeObject(this.nodeRoot);
             outputStream.writeObject(this.files);
@@ -205,18 +203,18 @@ public class HdfsNode {
         try {
 
             ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-            Action action = (Action) inputStream.readObject();
+            HdfsAction action = (HdfsAction) inputStream.readObject();
 
-            if (action == Action.PING) {
+            if (action == HdfsAction.PING) {
                 ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-                outputStream.writeObject(Action.PONG);
-            } else if (action == Action.WRITE) {
+                outputStream.writeObject(HdfsAction.PONG);
+            } else if (action == HdfsAction.WRITE) {
                 this.handleWrite(sock, inputStream);
-            } else if (action == Action.READ) {
+            } else if (action == HdfsAction.READ) {
                 this.handleRead(sock, inputStream);
-            } else if (action == Action.DELETE) {
+            } else if (action == HdfsAction.DELETE) {
                 this.handleDelete(sock, inputStream);
-            } else if (action == Action.FORCE_RESCAN) {
+            } else if (action == HdfsAction.FORCE_RESCAN) {
                 this.handleForceRescan(sock, inputStream);
             }
 
@@ -237,7 +235,7 @@ public class HdfsNode {
         os.close();
 
         // TODO Gestion du pong
-        assert inputStream.readObject() == Action.PONG;
+        assert inputStream.readObject() == HdfsAction.PONG;
         sock.close();
     }
 
@@ -254,7 +252,7 @@ public class HdfsNode {
         File f = new File(this.nodeRoot, fileName + "." + fragment + (lastPart ? ".final" : "") + ".part");
         Files.copy(rawInput, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-        outputStream.writeObject(Action.PONG);
+        outputStream.writeObject(HdfsAction.PONG);
         this.scanDir();
 
     }
@@ -271,7 +269,7 @@ public class HdfsNode {
             }
             this.files.remove(filename);
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-            outputStream.writeObject(Action.PONG);
+            outputStream.writeObject(HdfsAction.PONG);
         } catch (ClassNotFoundException | IOException e) {
             // TODO Gérer proprement
             e.printStackTrace();
@@ -320,13 +318,13 @@ public class HdfsNode {
 
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
-            outputStream.writeObject(Action.PING);
+            outputStream.writeObject(HdfsAction.PING);
             outputStream.writeObject(this.server.getLocalPort());
 
             ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
             Object answer = inputStream.readObject();
 
-            if (answer != Action.PONG) {
+            if (answer != HdfsAction.PONG) {
                 System.out.println("Ping : Le NameServer ne reconnaît pas le noeud, initialisation...");
                 this.initNode();
             }

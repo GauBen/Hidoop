@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import formats.Format;
-import hdfs.HdfsNameServer.Action;
 import hdfs.HdfsNameServer.FragmentInfo;
 
 /**
@@ -48,7 +47,7 @@ public class HdfsClient {
 
             // On lui envoie que l'on veut lire un fichier
             File f = new File(hdfsFname);
-            out.writeObject(Action.READ);
+            out.writeObject(HdfsAction.READ);
             out.writeObject(f.getName());
 
             // TODO error forwarding
@@ -79,7 +78,7 @@ public class HdfsClient {
 
             // On l'informe qu'on veut écrire un fichier
             File f = new File(localFSSourceFname);
-            out.writeObject(Action.WRITE);
+            out.writeObject(HdfsAction.WRITE);
             out.writeObject(f.getName());
 
             // On envoie le fichier
@@ -89,7 +88,7 @@ public class HdfsClient {
 
             Object response = new ObjectInputStream(sock.getInputStream()).readObject();
             // TODO Gestion du pong
-            assert response == Action.PONG;
+            assert response == HdfsAction.PONG;
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
@@ -110,12 +109,12 @@ public class HdfsClient {
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
 
             // On l'informe qu'on veut supprimer un fichier
-            out.writeObject(Action.DELETE);
+            out.writeObject(HdfsAction.DELETE);
             out.writeObject(hdfsFname);
 
             Object response = new ObjectInputStream(sock.getInputStream()).readObject();
             // TODO Gestion du pong
-            assert response == Action.PONG;
+            assert response == HdfsAction.PONG;
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
@@ -130,7 +129,7 @@ public class HdfsClient {
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
 
             // On l'informe qu'on veut la liste des fragments
-            out.writeObject(Action.LIST_FRAGMENTS);
+            out.writeObject(HdfsAction.LIST_FRAGMENTS);
             out.writeObject(hdfsFilename);
 
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
@@ -141,7 +140,7 @@ public class HdfsClient {
                 lst.add(((List<?>) i).stream().map(obj -> (FragmentInfo) obj).collect(Collectors.toList()));
             }
 
-            out.writeObject(Action.PONG);
+            out.writeObject(HdfsAction.PONG);
             return lst;
 
         } catch (IOException | ClassNotFoundException e) {
@@ -160,11 +159,11 @@ public class HdfsClient {
 
             // On force le rafraîchissement du catalogue
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
-            out.writeObject(Action.FORCE_RESCAN);
+            out.writeObject(HdfsAction.FORCE_RESCAN);
 
             // TODO Gestion du pong
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
-            assert Action.PONG == new ObjectInputStream(in).readObject();
+            assert HdfsAction.PONG == new ObjectInputStream(in).readObject();
 
         } catch (IOException | ClassNotFoundException e) {
             // TODO Gestion de l'erreur du rafraichissement
@@ -192,30 +191,30 @@ public class HdfsClient {
         }
 
         switch (args[0]) {
-            case "rescan":
-                requestRefresh();
-                break;
-            case "read":
-                HdfsRead(args[1], args.length < 3 ? null : args[2]);
-                break;
-            case "delete":
-                HdfsDelete(args[1]);
-                break;
-            case "write":
-                Format.Type fmt;
-                if (args.length < 3) {
-                    usage();
-                    return;
-                }
-                if (args[1].equals("line"))
-                    fmt = Format.Type.LINE;
-                else if (args[1].equals("kv"))
-                    fmt = Format.Type.KV;
-                else {
-                    usage();
-                    return;
-                }
-                HdfsWrite(fmt, args[2], 1);
+        case "rescan":
+            requestRefresh();
+            break;
+        case "read":
+            HdfsRead(args[1], args.length < 3 ? null : args[2]);
+            break;
+        case "delete":
+            HdfsDelete(args[1]);
+            break;
+        case "write":
+            Format.Type fmt;
+            if (args.length < 3) {
+                usage();
+                return;
+            }
+            if (args[1].equals("line"))
+                fmt = Format.Type.LINE;
+            else if (args[1].equals("kv"))
+                fmt = Format.Type.KV;
+            else {
+                usage();
+                return;
+            }
+            HdfsWrite(fmt, args[2], 1);
         }
     }
 

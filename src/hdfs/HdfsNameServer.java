@@ -55,30 +55,6 @@ public class HdfsNameServer {
     final public static int BUFFER_SIZE = 4194304;
 
     /**
-     * Les actions possibles dans HDFS.
-     */
-    public enum Action {
-        /** Reconstition d'un fichier fragmenté. */
-        READ,
-        /** Sauvegarde d'un fichier fragmenté. */
-        WRITE,
-        /** Suppression d'un fichier fragmenté. */
-        DELETE,
-        /** Requête d'un nouveau noeud à initialiser. */
-        NEW_NODE,
-        /** Requête de vérification d'activité. */
-        PING,
-        /** Réponse de vérification d'activité. */
-        PONG,
-        /** Le ping provient d'un noeud inconnu. */
-        UNKNOWN_NODE,
-        /** On veut connaître la liste des fragments d'un fichier. */
-        LIST_FRAGMENTS,
-        /** On veut mettre à jour la liste des fichiers. */
-        FORCE_RESCAN
-    }
-
-    /**
      * Serveur qui traite les requêtes HDFS.
      */
     private ServerSocket server;
@@ -159,10 +135,10 @@ public class HdfsNameServer {
 
                 // On envoie ping et on attend pong
                 ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-                outputStream.writeObject(Action.PING);
+                outputStream.writeObject(HdfsAction.PING);
 
                 ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-                if (inputStream.readObject() != Action.PONG) {
+                if (inputStream.readObject() != HdfsAction.PONG) {
                     throw new SocketException("Noeud déconnecté.");
                 }
 
@@ -231,22 +207,22 @@ public class HdfsNameServer {
     private void handleRequest(Socket sock) {
         try {
             ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-            Action action = (Action) inputStream.readObject();
+            HdfsAction action = (HdfsAction) inputStream.readObject();
 
             // On filtre l'action demandée
-            if (action == Action.PING) {
+            if (action == HdfsAction.PING) {
                 this.handlePing(sock, inputStream);
-            } else if (action == Action.READ) {
+            } else if (action == HdfsAction.READ) {
                 this.handleRead(sock, inputStream);
-            } else if (action == Action.WRITE) {
+            } else if (action == HdfsAction.WRITE) {
                 this.handleWrite(sock, inputStream);
-            } else if (action == Action.DELETE) {
+            } else if (action == HdfsAction.DELETE) {
                 this.handleDelete(sock, inputStream);
-            } else if (action == Action.NEW_NODE) {
+            } else if (action == HdfsAction.NEW_NODE) {
                 this.handleNewNode(sock, inputStream);
-            } else if (action == Action.LIST_FRAGMENTS) {
+            } else if (action == HdfsAction.LIST_FRAGMENTS) {
                 this.handleListFragments(sock, inputStream);
-            } else if (action == Action.FORCE_RESCAN) {
+            } else if (action == HdfsAction.FORCE_RESCAN) {
                 this.handleForceRescan(sock, inputStream);
             } else {
                 throw new IllegalArgumentException("Action invalide.");
@@ -278,11 +254,11 @@ public class HdfsNameServer {
         // Le noeud est-il connu ?
         if (this.nodes.stream().anyMatch(node -> node.equals(uri))) {
             // On envoie pong
-            outputStream.writeObject(Action.PONG);
+            outputStream.writeObject(HdfsAction.PONG);
         } else {
             // On informe le noeud qu'il n'est pas initialisé
             System.err.println("Pong : Le ping provient d'un noeud inconnu...");
-            outputStream.writeObject(Action.UNKNOWN_NODE);
+            outputStream.writeObject(HdfsAction.UNKNOWN_NODE);
         }
 
     }
@@ -306,7 +282,7 @@ public class HdfsNameServer {
 
             ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream());
 
-            nodeOutputStream.writeObject(Action.READ);
+            nodeOutputStream.writeObject(HdfsAction.READ);
             nodeOutputStream.writeObject(name);
             nodeOutputStream.writeObject(fragment);
 
@@ -314,13 +290,13 @@ public class HdfsNameServer {
             rawInput.transferTo(bos);
             bos.flush();
 
-            nodeOutputStream.writeObject(Action.PONG);
+            nodeOutputStream.writeObject(HdfsAction.PONG);
 
         }
 
         sock.shutdownOutput();
         // TODO Meilleure gestion du pong
-        assert inputStream.readObject() == Action.PONG;
+        assert inputStream.readObject() == HdfsAction.PONG;
 
     }
 
@@ -358,7 +334,7 @@ public class HdfsNameServer {
             fragment++;
         }
 
-        outputStream.writeObject(Action.PONG);
+        outputStream.writeObject(HdfsAction.PONG);
 
     }
 
@@ -396,7 +372,7 @@ public class HdfsNameServer {
                 BufferedOutputStream rawOutputStream = new BufferedOutputStream(sock.getOutputStream());
                 ObjectOutputStream outputStream = new ObjectOutputStream(rawOutputStream);
 
-                outputStream.writeObject(Action.WRITE);
+                outputStream.writeObject(HdfsAction.WRITE);
                 outputStream.writeObject(fileName);
                 outputStream.writeObject(fragment);
                 outputStream.writeObject(lastPart);
@@ -406,7 +382,7 @@ public class HdfsNameServer {
                 sock.shutdownOutput();
 
                 ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-                if (inputStream.readObject() != Action.PONG) {
+                if (inputStream.readObject() != HdfsAction.PONG) {
                     // TODO Déconnecter les noeuds proprement
                     throw new SocketException("Noeud déconnecté.");
                 }
@@ -439,11 +415,11 @@ public class HdfsNameServer {
                 ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
 
                 // On envoie le nom du fichier à delete
-                out.writeObject(Action.DELETE);
+                out.writeObject(HdfsAction.DELETE);
                 out.writeObject(filename);
 
                 ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
-                if (in.readObject() != Action.PONG) {
+                if (in.readObject() != HdfsAction.PONG) {
                     // TODO Déconnecter les noeuds proprement
                     throw new SocketException("Noeud déconnecté.");
                 }
@@ -456,7 +432,7 @@ public class HdfsNameServer {
         this.files.remove(filename);
 
         ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-        outputStream.writeObject(Action.PONG);
+        outputStream.writeObject(HdfsAction.PONG);
     }
 
     /**
@@ -603,7 +579,7 @@ public class HdfsNameServer {
 
         outputStream.writeObject(list);
         // TODO Meilleure gestion du pong
-        assert inputStream.readObject() == Action.PONG;
+        assert inputStream.readObject() == HdfsAction.PONG;
 
     }
 
@@ -619,7 +595,7 @@ public class HdfsNameServer {
             try {
                 Socket nodeSock = new Socket(node.getHost(), node.getPort());
                 ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
-                out.writeObject(Action.FORCE_RESCAN);
+                out.writeObject(HdfsAction.FORCE_RESCAN);
 
                 ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
                 this.registerFragments(node, in.readObject());
@@ -631,7 +607,7 @@ public class HdfsNameServer {
         }
 
         ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-        outputStream.writeObject(Action.PONG);
+        outputStream.writeObject(HdfsAction.PONG);
 
         this.printFiles();
     }
