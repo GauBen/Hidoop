@@ -1,5 +1,6 @@
 package ordo;
 
+import application.QuasiMonteCarlo;
 import formats.Format;
 import formats.Format.OpenMode;
 import formats.KVFormat;
@@ -111,6 +112,10 @@ public class Job implements JobInterfaceX {
                 Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
 
                 worker.runMap(mr, iFormat, oFormat, callBack);
+
+                if (this.mapReduce instanceof QuasiMonteCarlo){
+                    ((QuasiMonteCarlo) this.mapReduce).offset+=((QuasiMonteCarlo) this.mapReduce).size;
+                }
 
 
             } catch (NotBoundException e) {

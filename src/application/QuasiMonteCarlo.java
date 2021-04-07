@@ -17,8 +17,8 @@ public class QuasiMonteCarlo implements MapReduce {
     public int size;
 
     public QuasiMonteCarlo(int offset, int size){
-        offset = offset;
-        size = size;
+        this.offset = offset;
+        this.size = size;
     }
 
     @Override
