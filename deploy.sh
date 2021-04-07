@@ -21,6 +21,12 @@ SCRIPT_NETTOYAGE="rm -rf /work/"$USERNAME
 SCRIPT_CREATION="mkdir -p /work/"$USERNAME
 SCRIPT_CREATION_DOSSIER_NODE="mkdir -p /work/"$USERNAME/"Hidoop/node"
 
+# On met tout ça sur la machine locale
+$SCRIPT_NETTOYAGE
+$SCRIPT_CREATION
+$SCRIPT_CREATION_DOSSIER_NODE
+
+# Puis pareil sur les machines distantes
 for HOST in ${HOSTS}; do
   echo "On nettoie " $HOST
   ssh "$USERNAME@$HOST" "$SCRIPT_NETTOYAGE"
