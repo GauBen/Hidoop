@@ -201,20 +201,11 @@ public class HdfsClient {
             HdfsDelete(args[1]);
             break;
         case "write":
-            Format.Type fmt;
-            if (args.length < 3) {
+            if (args.length < 2) {
                 usage();
                 return;
             }
-            if (args[1].equals("line"))
-                fmt = Format.Type.LINE;
-            else if (args[1].equals("kv"))
-                fmt = Format.Type.KV;
-            else {
-                usage();
-                return;
-            }
-            HdfsWrite(fmt, args[2], 1);
+            HdfsWrite(Format.Type.KV, args[1], 1);
         }
     }
 
