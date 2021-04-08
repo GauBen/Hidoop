@@ -162,6 +162,7 @@ public class Job implements JobInterfaceX {
         try {
             return (Worker) Naming.lookup(address.replace("hdfs://", ""));
         } catch (MalformedURLException | NotBoundException e) {
+            e.printStackTrace();
             System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
         } catch (RemoteException e) {
             e.printStackTrace();
