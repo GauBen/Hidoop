@@ -1,6 +1,7 @@
 package ordo;
 
-import java.net.URI;
+import hdfs.HdfsNodeInfo;
+
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.Semaphore;
@@ -22,13 +23,13 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
      * Called by the nodes when they are done Mapping
      */
     @Override
-    public void done(URI workerUri, long processDuration) throws RemoteException, InterruptedException {
+    public void done(HdfsNodeInfo workerUri, long processDuration) throws RemoteException, InterruptedException {
         this.numberOfTasksDone.getAndAdd(1);
         System.out.println("> Le node " + workerUri + " a fini en " + processDuration + "ms. Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
         // Free
         if (this.numberOfTasksDone.get() == this.numberOfMaps) {
             Job.job.allWorkersAreDone();
-        }else{
+        } else {
             // Si il reste des fragments à traiter
             Job.job.attributeNewWorkTo(workerUri, this);
         }

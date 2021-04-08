@@ -6,12 +6,12 @@ import formats.KVFormat;
 import formats.LineFormat;
 import hdfs.HdfsClient;
 import hdfs.HdfsNameServer.FragmentInfo;
+import hdfs.HdfsNodeInfo;
 import map.MapReduce;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -103,7 +103,7 @@ public class Job implements JobInterfaceX {
         }
 
 
-        for (URI workerUri : fragmentsHandler.getAllWorkers()) {
+        for (HdfsNodeInfo workerUri : fragmentsHandler.getAllWorkers()) {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
@@ -121,7 +121,7 @@ public class Job implements JobInterfaceX {
 
     }
 
-    public void attributeNewWorkTo(URI workerUri, CallBack callBack) {
+    public void attributeNewWorkTo(HdfsNodeInfo workerUri, CallBack callBack) {
         FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
         Worker worker = getWorkerFromUri(workerUri);
@@ -156,7 +156,7 @@ public class Job implements JobInterfaceX {
     }
 
 
-    private Worker getWorkerFromUri(URI workerUri) {
+    private Worker getWorkerFromUri(HdfsNodeInfo workerUri) {
         String address = WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
                 workerUri.getHost(), workerUri.getPort());
         try {

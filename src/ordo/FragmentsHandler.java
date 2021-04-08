@@ -1,8 +1,8 @@
 package ordo;
 
 import hdfs.HdfsNameServer.FragmentInfo;
+import hdfs.HdfsNodeInfo;
 
-import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,7 +26,7 @@ public class FragmentsHandler {
     public FragmentsHandler(List<FragmentInfo> allFragments) {
         for (FragmentInfo info : allFragments) {
             int id = info.id;
-            URI uri = info.node;
+            HdfsNodeInfo uri = info.node;
 
             if (this.allFragments.get(uri) == null) {
                 this.allFragments.put(uri.toString(), new ArrayList<>());
@@ -43,7 +43,7 @@ public class FragmentsHandler {
      * @param uri
      * @return FragmentInfo | null
      */
-    public FragmentInfo getAvailableFragmentForURI(URI uri) {
+    public FragmentInfo getAvailableFragmentForURI(HdfsNodeInfo uri) {
         for (FragmentInfo info : this.allFragments.get(uri.toString())) {
             if (this.fragmentsStates.get(info.id) == STATE_NOT_PROCESSED) {
                 this.fragmentsStates.put(info.id, STATE_IN_PROGRESS);
@@ -56,12 +56,13 @@ public class FragmentsHandler {
 
     /**
      * Get the URI of all Workers
+     *
      * @return
      */
-    public Set<URI> getAllWorkers() {
-        Set<URI> allWorkers= new HashSet<>();
+    public Set<HdfsNodeInfo> getAllWorkers() {
+        Set<HdfsNodeInfo> allWorkers = new HashSet<>();
         // Transform allFragments to a list
-        for(FragmentInfo info : this.allFragments.values().stream().flatMap(List::stream).collect(Collectors.toList())){
+        for (FragmentInfo info : this.allFragments.values().stream().flatMap(List::stream).collect(Collectors.toList())) {
             allWorkers.add(info.node);
         }
 

@@ -3,12 +3,12 @@ package ordo;
 import application.RmiCustomInterface;
 import formats.Format;
 import formats.Format.OpenMode;
+import hdfs.HdfsNodeInfo;
 import map.Mapper;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -26,7 +26,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     public String id;
 
-    public URI uri;
+    public HdfsNodeInfo uri;
 
     public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
             throws RemoteException, URISyntaxException {
@@ -34,7 +34,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         this.id = hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
 
 
-        this.uri = new URI("hdfs://" + hostDistantDuNoeudHdfs + ":" + portDuNodeHdfs);
+        this.uri = new HdfsNodeInfo(hostDistantDuNoeudHdfs, portDuNodeHdfs, "");
 
         try {
 
