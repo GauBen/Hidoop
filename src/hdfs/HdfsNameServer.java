@@ -596,8 +596,7 @@ public class HdfsNameServer {
         }
 
         outputStream.writeObject(list);
-        // TODO Meilleure gestion du pong
-        assert inputStream.readObject() == HdfsAction.PONG;
+        expectPong(inputStream);
 
     }
 

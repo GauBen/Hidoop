@@ -98,6 +98,9 @@ public class HdfsNode {
 
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
+            System.out.println(
+                    "Initialisation du serveur: port=" + this.server.getLocalPort() + "; root=" + this.nodeRoot);
+
             outputStream.writeObject(HdfsAction.NEW_NODE);
             outputStream.writeObject(this.server.getLocalPort());
             outputStream.writeObject(this.nodeRoot);
@@ -329,7 +332,6 @@ public class HdfsNode {
                 this.initNode();
             }
 
-        } catch (AssertionError e) {
         } catch (IOException | ClassNotFoundException e) {
             // TODO augmenter l'attente ?
             System.out.println("Ping : Le NameServer n'est pas joignable.");
