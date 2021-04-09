@@ -55,6 +55,7 @@ public class HdfsClient {
             BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
             Files.copy(in, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
 
+            out.writeObject(HdfsAction.PONG);
             sock.close();
         } catch (IOException e) {
             System.err.println("La lecture a échoué.");
