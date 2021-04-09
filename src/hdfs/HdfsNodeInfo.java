@@ -36,4 +36,12 @@ public class HdfsNodeInfo implements Serializable {
         return this.matches(node.getHost(), node.getPort());
     }
 
+    public String toString() {
+        return getHost() + ":" + getPort();
+    }
+
+    public int hashCode() {
+        return toString().hashCode();
+    }
+
 }
