@@ -23,14 +23,8 @@ done
 java -cp $CUSTOM_PATH "hdfs.HdfsNameServer" $NameserverPort &
 
 # STOPPER LES SERVEURS LORSQUE ON APPUIE SUR UN CARACTERE !
-pasFini=true
-while [ $pasFini ]; do
-  echo "Appuyez sur un bouton pour arreter"
-  read -t 3 -n 1
-  if [ $? = 0 ]; then
-    pasFini=false
-  fi
-done
+read -n 1 -s -r -p "Appuyez sur un bouton pour arreter"
+
 echo "Arret en cours..."
 
 
@@ -42,3 +36,5 @@ done
 
 echo "On arrete le RmiCustom..."
 pkill -9 -f RmiCustom &
+echo "On arrete HdfsNameServer..."
+pkill -9 -f HdfsNameServer &
