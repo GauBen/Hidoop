@@ -10,11 +10,7 @@ if [ ! -d "./src" ]; then
 fi
 
 # Compilation
-WORK_DIR="/work/$USER/Hidoop"
-mkdir -p $WORK_DIR
-echo "Compilation..."
-javac -d $WORK_DIR ./src/**/*.java
-echo "Ok !"
+$(dirname "$0")/compile.sh
 
 # Nettoyage et upload du projet Hidoop
 SCRIPT_NETTOYAGE="rm -rf /work/"$USERNAME
