@@ -10,7 +10,7 @@ if [ ! -d "./src" ]; then
 fi
 
 # Compilation
-$(dirname "$0")/compile.sh
+bash compile.sh
 
 # Nettoyage et upload du projet Hidoop
 SCRIPT_NETTOYAGE="rm -rf /work/"$USERNAME
