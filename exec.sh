@@ -23,12 +23,12 @@ done
 java -cp $CUSTOM_PATH "hdfs.HdfsNameServer" $NameserverPort &
 
 # STOPPER LES SERVEURS LORSQUE ON APPUIE SUR UN CARACTERE !
-
-while [ true ]; do
+pasFini=true
+while [ $pasFini ]; do
   echo "Appuyez sur un bouton pour arreter"
   read -t 3 -n 1
   if [ $? = 0 ]; then
-    exit
+    pasFini=false
   fi
 done
 echo "Arret en cours..."
@@ -40,6 +40,5 @@ for HOST in ${HOSTS}; do
   ssh -l ${USERNAME} ${HOST} pkill -9 -f BiNode &
 done
 
-sleep 1
 echo "On arrete le RmiCustom..."
 pkill -9 -f RmiCustom &
