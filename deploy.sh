@@ -2,6 +2,7 @@
 # == Déploie le projet Hidoop sur les machines ==
 USERNAME=$USER
 HOSTS="pikachu.enseeiht.fr carapuce.enseeiht.fr salameche.enseeiht.fr"
+WORK_DIR="/work/$USER/Hidoop"
 
 # Vérification du dossier courant
 if [ ! -d "./src" ]; then
