@@ -28,13 +28,15 @@ public class FragmentsHandler {
             int id = info.id;
             HdfsNodeInfo uri = info.node;
 
-            if (this.allFragments.get(uri) == null) {
+            if (!this.allFragments.containsKey(uri.toString())) {
                 this.allFragments.put(uri.toString(), new ArrayList<>());
-                this.fragmentsStates.put(id, STATE_NOT_PROCESSED);
             }
+            this.fragmentsStates.put(id, STATE_NOT_PROCESSED);
             this.allFragments.get(uri.toString()).add(info);
 
         }
+
+        System.out.println("C'est parti! Il y a " + fragmentsStates.size() + " fragments uniques.");
     }
 
     /**
@@ -50,6 +52,8 @@ public class FragmentsHandler {
                 return info;
             }
         }
+
+        System.out.println("Pas de fragment supplementaire trouve pour " + uri);
 
         return null;
     }

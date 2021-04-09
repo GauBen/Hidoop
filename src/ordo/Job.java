@@ -20,6 +20,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 public class Job implements JobInterfaceX {
@@ -43,6 +44,7 @@ public class Job implements JobInterfaceX {
 
     public static Job job;
 
+    private Semaphore waitForFinish = new Semaphore(0);
 
     public Job() {
         super();
@@ -109,8 +111,6 @@ public class Job implements JobInterfaceX {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
                     FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
-                    System.out.println("Le fragment bidon a pour info : " + info);
-
                     if (info != null) {
                         this.executeWork(worker, info, callBack);
                     }
@@ -119,6 +119,14 @@ public class Job implements JobInterfaceX {
             } catch (RemoteException e) {
                 System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
             }
+        }
+
+
+        // We wait for the job to finish
+        try {
+            this.waitForFinish.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
     }
@@ -184,6 +192,9 @@ public class Job implements JobInterfaceX {
 
         // When callback frees semaphores, all nodes are done
         this.doReduceJob();
+
+        // We can let the job end.
+        this.waitForFinish.release();
     }
 
     /**
