@@ -109,6 +109,8 @@ public class Job implements JobInterfaceX {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
                     FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
+                    System.out.println("Le fragment bidon a pour info : " + info);
+
                     if (info != null) {
                         this.executeWork(worker, info, callBack);
                     }

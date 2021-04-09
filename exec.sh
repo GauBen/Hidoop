@@ -31,11 +31,15 @@ while [ true ]; do
     exit
   fi
 done
+echo "Arret en cours..."
 
-pkill -9 -f RmiCustom &
 
 echo "On stoppe les serveurs..."
 for HOST in ${HOSTS}; do
   echo "On stoppe " $HOST
-  ssh -l ${USERNAME} ${HOST} "pkill -9 -f BiNode" &
+  ssh -l ${USERNAME} ${HOST} pkill -9 -f BiNode &
 done
+
+sleep 1
+echo "On arrete le RmiCustom..."
+pkill -9 -f RmiCustom &
