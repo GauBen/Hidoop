@@ -280,6 +280,7 @@ public class HdfsNameServer {
             clientOutputStream.writeObject(null);
 
             Map<Integer, Set<HdfsNodeInfo>> file = this.files.get(name);
+
             for (int fragment : file.keySet()) {
                 HdfsNodeInfo node = file.get(fragment).iterator().next();
 
@@ -296,12 +297,10 @@ public class HdfsNameServer {
                     bos.flush();
 
                     nodeOutputStream.writeObject(HdfsAction.PONG);
-                } catch (UnknownHostException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    // TODO Chercher à contacter un autre noeud
+                    System.err.println("Un noeud a été déconnecté pendant le transfert");
                 }
 
             }
