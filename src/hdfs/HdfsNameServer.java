@@ -226,16 +226,11 @@ public class HdfsNameServer {
             } else if (action == HdfsAction.FORCE_RESCAN) {
                 this.handleForceRescan(sock, inputStream);
             } else {
-                throw new IllegalArgumentException("Action invalide.");
+                System.err.println("Action reçue invalide, connexion annulée.");
             }
 
         } catch (ClassNotFoundException | IOException e) {
-            // TODO check ça
-            e.printStackTrace();
             System.err.println("Données invalides, connexion annulée.");
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            System.err.println("Action reçue invalide.");
         }
     }
 
@@ -577,26 +572,28 @@ public class HdfsNameServer {
      *
      * @throws IOException
      */
-    private void handleForceRescan(Socket sock, ObjectInputStream inputStream) throws IOException {
+    private void handleForceRescan(Socket clientSock, ObjectInputStream clientInputStream) {
         this.files = new HashMap<>();
 
-        for (HdfsNodeInfo node : this.nodes) {
+        for (HdfsNodeInfo node : new HashSet<>(this.nodes)) {
             try (Socket nodeSock = new Socket(node.getHost(), node.getPort());
-                    ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());) {
+                    ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream());) {
 
-                out.writeObject(HdfsAction.FORCE_RESCAN);
+                nodeOutputStream.writeObject(HdfsAction.FORCE_RESCAN);
 
-                ObjectInputStream in = new ObjectInputStream(nodeSock.getInputStream());
-                this.registerFragments(node, in.readObject());
+                ObjectInputStream nodeInputStream = new ObjectInputStream(nodeSock.getInputStream());
+                this.registerFragments(node, nodeInputStream.readObject());
 
             } catch (IOException | ClassNotFoundException e) {
-                // TODO Déconnecter les noeuds proprement
-                e.printStackTrace();
+                System.err.println("Un noeud a été déconnecté pendant le rescan.");
+                this.removeNode(node);
             }
         }
 
-        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-        outputStream.writeObject(HdfsAction.PONG);
+        try (ObjectOutputStream outputStream = new ObjectOutputStream(clientSock.getOutputStream())) {
+            outputStream.writeObject(HdfsAction.PONG);
+        } catch (IOException e) {
+        }
 
         this.printFiles();
     }
