@@ -49,9 +49,15 @@ public class HdfsClient {
             out.writeObject(HdfsAction.READ);
             out.writeObject(f.getName());
 
-            // TODO error forwarding
-
             BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
+            ObjectInputStream serverInputStream = new ObjectInputStream(in);
+
+            HdfsRuntimeException exception = (HdfsRuntimeException) serverInputStream.readObject();
+
+            if (exception != null) {
+                throw exception;
+            }
+
             Files.copy(in, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
 
             out.writeObject(HdfsAction.PONG);
@@ -59,6 +65,11 @@ public class HdfsClient {
         } catch (IOException e) {
             System.err.println("La lecture a échoué.");
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (HdfsRuntimeException e) {
+            System.err.println("Erreur reçue : " + e.getMessage());
         }
     }
 

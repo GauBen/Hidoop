@@ -267,13 +267,17 @@ public class HdfsNameServer {
      */
     private void handleRead(Socket sock, ObjectInputStream inputStream) {
 
-        try (BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream())) {
+        try (BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
+                ObjectOutputStream clientOutputStream = new ObjectOutputStream(bos)) {
 
             String name = (String) inputStream.readObject();
+
             if (!this.isFileComplete(name)) {
-                // TODO transmettre l'erreur
-                throw new RuntimeException("Fichier incomplet");
+                clientOutputStream.writeObject(new HdfsRuntimeException("Fichier inexistant ou incomplet"));
+                return;
             }
+
+            clientOutputStream.writeObject(null);
 
             Map<Integer, Set<HdfsNodeInfo>> file = this.files.get(name);
             for (int fragment : file.keySet()) {
