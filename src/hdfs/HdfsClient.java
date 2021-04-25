@@ -62,15 +62,18 @@ public class HdfsClient {
 
             out.writeObject(HdfsAction.PONG);
             sock.close();
+
         } catch (IOException e) {
             System.err.println("La lecture a échoué.");
-            e.printStackTrace();
+            try {
+                Files.delete(Path.of(localFSDestFname));
+            } catch (IOException e2) {
+            }
         } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         } catch (HdfsRuntimeException e) {
             System.err.println("Erreur reçue : " + e.getMessage());
         }
+
     }
 
     /**
