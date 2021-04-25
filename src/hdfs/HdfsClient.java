@@ -52,8 +52,8 @@ public class HdfsClient {
             BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
             ObjectInputStream serverInputStream = new ObjectInputStream(in);
 
+            // Réception des erreurs
             HdfsRuntimeException exception = (HdfsRuntimeException) serverInputStream.readObject();
-
             if (exception != null) {
                 throw exception;
             }
