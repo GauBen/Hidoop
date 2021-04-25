@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import formats.Format;
-import hdfs.HdfsNameServer.FragmentInfo;
 
 /**
  * Un client HDFS, qui distribue des fragments de fichiers aux noeuds HDFS.

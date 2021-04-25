@@ -9,11 +9,9 @@ package hdfs;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -24,8 +22,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -547,32 +545,6 @@ public class HdfsNameServer {
             }
         }
         return true;
-    }
-
-    public static class FragmentInfo implements Serializable {
-        // TODO extraire cette classe
-        private static final long serialVersionUID = -1636990109710437159L;
-        public String filename;
-        public int id;
-        public boolean lastPart;
-        public HdfsNodeInfo node;
-        public String root;
-
-        public FragmentInfo(String filename, int id, boolean lastPart, HdfsNodeInfo node, String root) {
-            this.filename = filename;
-            this.id = id;
-            this.lastPart = lastPart;
-            this.node = node;
-            this.root = root;
-        }
-
-        public String getFragmentName() {
-            return filename + "." + id + (lastPart ? ".final" : "") + ".part";
-        }
-
-        public String getAbsolutePath() {
-            return new File(this.root, this.getFragmentName()).getAbsolutePath();
-        }
     }
 
     private void handleListFragments(Socket sock, ObjectInputStream inputStream)

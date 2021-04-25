@@ -1,14 +1,5 @@
 package ordo;
 
-import formats.Format;
-import formats.Format.OpenMode;
-import formats.KVFormat;
-import formats.LineFormat;
-import hdfs.HdfsClient;
-import hdfs.HdfsNameServer.FragmentInfo;
-import hdfs.HdfsNodeInfo;
-import map.MapReduce;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -22,6 +13,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
+
+import formats.Format;
+import formats.Format.OpenMode;
+import formats.KVFormat;
+import formats.LineFormat;
+import hdfs.FragmentInfo;
+import hdfs.HdfsClient;
+import hdfs.HdfsNodeInfo;
+import map.MapReduce;
 
 public class Job implements JobInterfaceX {
     // TODO
@@ -83,8 +83,8 @@ public class Job implements JobInterfaceX {
 
         // Get all fragments
         // On transforme les fragments sous forme de liste
-        List<FragmentInfo> fragments = Objects.requireNonNull(fragmentsTable)
-                .stream().flatMap(List::stream).collect(Collectors.toList()); // TODO : Verifier
+        List<FragmentInfo> fragments = Objects.requireNonNull(fragmentsTable).stream().flatMap(List::stream)
+                .collect(Collectors.toList()); // TODO : Verifier
 
         this.fragmentsHandler = new FragmentsHandler(fragments);
 
@@ -104,7 +104,6 @@ public class Job implements JobInterfaceX {
             return;
         }
 
-
         for (HdfsNodeInfo workerUri : fragmentsHandler.getAllWorkers()) {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
@@ -120,7 +119,6 @@ public class Job implements JobInterfaceX {
                 System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
             }
         }
-
 
         // We wait for the job to finish
         try {
@@ -138,7 +136,8 @@ public class Job implements JobInterfaceX {
 
         if (fragment != null && worker != null) {
             // On demarre le traitement du fragment sur le node associe
-            // TODO: si le fragment ne démarre pas bien, il faut marquer le fragment comme "NON TRAITE" au lieu de "EN COURS"
+            // TODO: si le fragment ne démarre pas bien, il faut marquer le fragment comme
+            // "NON TRAITE" au lieu de "EN COURS"
 
             this.executeWork(worker, fragment, callBack);
 
@@ -151,8 +150,8 @@ public class Job implements JobInterfaceX {
         Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());
 
         // TODO : tester quand la méthode sera définie
-        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart,
-                info.node, info.root);
+        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart, info.node,
+                info.root);
 
         Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
 
@@ -162,13 +161,11 @@ public class Job implements JobInterfaceX {
             System.out.println("Impossible de demarrer le runMap sur le worker ! ");
         }
 
-
     }
 
-
     private Worker getWorkerFromUri(HdfsNodeInfo workerUri) {
-        String address = WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
-                workerUri.getHost(), workerUri.getPort());
+        String address = WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort, workerUri.getHost(),
+                workerUri.getPort());
         try {
             return (Worker) Naming.lookup(address.replace("hdfs://", ""));
         } catch (MalformedURLException | NotBoundException e) {
@@ -176,12 +173,11 @@ public class Job implements JobInterfaceX {
             System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
         } catch (RemoteException e) {
             e.printStackTrace();
-            System.out.println(
-                    "> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
+            System.out
+                    .println("> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
         }
         return null;
     }
-
 
     /**
      * Called by Callback when all workers are done
@@ -231,7 +227,6 @@ public class Job implements JobInterfaceX {
             e.printStackTrace();
         }
 
-
         // Get the complete file from the HDFS and replace the empty file
         System.out.println("> On telecharge les résultats des machines");
         // TODO : verifier que ça remplace bien
@@ -247,7 +242,6 @@ public class Job implements JobInterfaceX {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
 
         // We create the result file
         File file = new File(getResFolderPath(), this.outputFname);
@@ -275,14 +269,14 @@ public class Job implements JobInterfaceX {
     public Format getFormatFromType(Format.Type type, String fName) {
         Format format;
         switch (type) {
-            case KV:
-                format = new KVFormat(fName);
-                break;
-            case LINE:
-                format = new LineFormat(fName);
-                break;
-            default:
-                format = null;
+        case KV:
+            format = new KVFormat(fName);
+            break;
+        case LINE:
+            format = new LineFormat(fName);
+            break;
+        default:
+            format = null;
         }
         if (format == null) {
             throw new RuntimeException("Invalid format " + type);

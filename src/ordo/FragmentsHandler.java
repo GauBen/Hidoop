@@ -1,10 +1,14 @@
 package ordo;
 
-import hdfs.HdfsNameServer.FragmentInfo;
-import hdfs.HdfsNodeInfo;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import hdfs.FragmentInfo;
+import hdfs.HdfsNodeInfo;
 
 public class FragmentsHandler {
 
@@ -13,8 +17,8 @@ public class FragmentsHandler {
     static final int STATE_PROCESSED = 2;
 
     /**
-     * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID
-     * La string correspond à URI.toString
+     * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID La
+     * string correspond à URI.toString
      */
     private final HashMap<String, List<FragmentInfo>> allFragments = new HashMap<>();
 
@@ -66,12 +70,12 @@ public class FragmentsHandler {
     public Set<HdfsNodeInfo> getAllWorkers() {
         Set<HdfsNodeInfo> allWorkers = new HashSet<>();
         // Transform allFragments to a list
-        for (FragmentInfo info : this.allFragments.values().stream().flatMap(List::stream).collect(Collectors.toList())) {
+        for (FragmentInfo info : this.allFragments.values().stream().flatMap(List::stream)
+                .collect(Collectors.toList())) {
             allWorkers.add(info.node);
         }
 
         return allWorkers;
     }
-
 
 }
