@@ -18,8 +18,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import formats.Format;
@@ -155,7 +158,33 @@ public class HdfsClient {
             }
 
             out.writeObject(HdfsAction.PONG);
-            return lst;
+            return Collections.unmodifiableList(lst);
+
+        } catch (IOException | ClassNotFoundException e) {
+            // TODO Gestion de l'erreur de récupération de la liste
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static Set<HdfsNodeInfo> listNodes() {
+        try {
+            Socket sock = newNameServerSocket();
+            ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
+
+            // On l'informe qu'on veut la liste des fragments
+            out.writeObject(HdfsAction.LIST_NODES);
+
+            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
+
+            Set<HdfsNodeInfo> set = new HashSet<>();
+            for (Object i : (Set<?>) in.readObject()) {
+                Objects.requireNonNull(i);
+                set.add((HdfsNodeInfo) i);
+            }
+
+            out.writeObject(HdfsAction.PONG);
+            return Collections.unmodifiableSet(set);
 
         } catch (IOException | ClassNotFoundException e) {
             // TODO Gestion de l'erreur de récupération de la liste

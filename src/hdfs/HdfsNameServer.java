@@ -224,6 +224,8 @@ public class HdfsNameServer {
                 this.handleListFragments(sock, inputStream);
             } else if (action == HdfsAction.FORCE_RESCAN) {
                 this.handleForceRescan(sock, inputStream);
+            } else if (action == HdfsAction.LIST_NODES) {
+                this.handleListNodes(sock, inputStream);
             } else {
                 System.err.println("Action reçue invalide, connexion annulée.");
             }
@@ -563,6 +565,19 @@ public class HdfsNameServer {
 
         outputStream.writeObject(list);
         expectPong(inputStream);
+
+    }
+
+    private void handleListNodes(Socket sock, ObjectInputStream inputStream) {
+
+        try (ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream())) {
+
+            outputStream.writeObject(Collections.unmodifiableSet(this.nodes));
+
+            expectPong(inputStream);
+
+        } catch (IOException | ClassNotFoundException e) {
+        }
 
     }
 

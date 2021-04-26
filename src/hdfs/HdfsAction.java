@@ -21,5 +21,7 @@ public enum HdfsAction {
     /** On veut connaître la liste des fragments d'un fichier. */
     LIST_FRAGMENTS,
     /** On veut mettre à jour la liste des fichiers. */
-    FORCE_RESCAN
+    FORCE_RESCAN,
+    /** On veut récupérer l'ensemble des noeuds connectés. */
+    LIST_NODES
 }
