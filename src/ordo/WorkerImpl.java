@@ -148,6 +148,9 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                 // On recupere notre gragment a traiter
                 File file = new File(reader.getFname());
 
+                // Get the fragment ID
+                int fragmentNumber = Integer.parseInt(reader.getFname().replaceAll("\\D", ""));
+
                 if (file.isFile() && !file.isDirectory()) {
                     // OK
                     reader.open(OpenMode.R);
@@ -157,7 +160,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
                     try {
                         long endTime = System.currentTimeMillis();
-                        cb.done(WorkerImpl.this.uri, endTime - startTime);
+                        cb.done(WorkerImpl.this.uri, endTime - startTime, fragmentNumber);
                     } catch (RemoteException | InterruptedException e) {
                         e.printStackTrace();
                     }

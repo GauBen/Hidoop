@@ -65,6 +65,11 @@ public class FragmentsHandler {
         return null;
     }
 
+    public void setFragmentDone(int fragmentId){
+        this.fragmentsTime.put(fragmentId, System.currentTimeMillis() - this.fragmentsTime.get(fragmentId));
+        this.fragmentsStates.put(fragmentId, STATE_PROCESSED);
+    }
+
     /**
      * Get the URI of all Workers
      *

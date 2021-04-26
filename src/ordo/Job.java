@@ -40,7 +40,7 @@ public class Job implements JobInterfaceX {
     String outputFname;
     SortComparator sortComparator;
 
-    FragmentsHandler fragmentsHandler;
+    static FragmentsHandler fragmentsHandler;
 
     public static Job job;
 
