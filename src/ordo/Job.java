@@ -58,6 +58,18 @@ public class Job implements JobInterfaceX {
     }
 
     /**
+     * Returns a job that requires no input
+     * @return
+     */
+    public static Job FileLessJob() {
+        Job job = new Job();
+
+
+
+        return job;
+    }
+
+    /**
      * Path du dossier qui contient les resultats temporaires
      *
      * @return String

@@ -27,6 +27,8 @@ public class FragmentsHandler {
      */
     private final HashMap<Integer, Integer> fragmentsStates = new HashMap<>();
 
+    private final HashMap<Integer, Long> fragmentsTime = new HashMap<>();
+
     public FragmentsHandler(List<FragmentInfo> allFragments) {
         for (FragmentInfo info : allFragments) {
             int id = info.id;
@@ -53,6 +55,7 @@ public class FragmentsHandler {
         for (FragmentInfo info : this.allFragments.get(uri.toString())) {
             if (this.fragmentsStates.get(info.id) == STATE_NOT_PROCESSED) {
                 this.fragmentsStates.put(info.id, STATE_IN_PROGRESS);
+                this.fragmentsTime.put(info.id, System.currentTimeMillis());
                 return info;
             }
         }
