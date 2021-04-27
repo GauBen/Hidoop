@@ -1,5 +1,8 @@
 package ordo;
 
+import hdfs.FragmentInfo;
+import hdfs.HdfsNodeInfo;
+
 import java.util.List;
 import java.util.TimerTask;
 
@@ -23,6 +26,14 @@ public class FragmentWatcher extends TimerTask {
                 // Restart the job on an other node
                 // How ? Mark the fragment as unprocessed and see if any of the worker can take him
                 // (any except the one that had it first)
+                System.out.println("Le fragment " + fragId + " prends trop de temps ! On le relance sur un autre node...");
+                FragmentInfo fragAlternatif = fragmentsHandler.getAlternativeForFragment(fragId, fragmentsHandler.getWorkerProcessingFragment(fragId));
+
+                Worker workerAlternatif = Job.job.getWorkerFromUri(fragAlternatif.node);
+
+                Job.job.executeWork(workerAlternatif, fragAlternatif, Job.callBack);
+
+
             }
         }
 

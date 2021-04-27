@@ -46,6 +46,8 @@ public class Job implements JobInterfaceX {
 
     private Semaphore waitForFinish = new Semaphore(0);
 
+    public static CallBack callBack;
+
     public Job() {
         super();
         // Ces valeurs sont écrasées plus tard
@@ -108,7 +110,6 @@ public class Job implements JobInterfaceX {
         this.numberOfMaps = fragmentsTable.size(); // One fragment = one runmap
 
         // Define the callback used to know when a worker is done
-        CallBackImpl callBack;
         try {
             callBack = new CallBackImpl(this.getNumberOfMaps());
         } catch (RemoteException e) {
@@ -156,7 +157,7 @@ public class Job implements JobInterfaceX {
         }
     }
 
-    private void executeWork(Worker worker, FragmentInfo info, CallBack callBack) {
+    public void executeWork(Worker worker, FragmentInfo info, CallBack callBack) {
 
         // Set the Format
         Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());
@@ -175,7 +176,7 @@ public class Job implements JobInterfaceX {
 
     }
 
-    private Worker getWorkerFromUri(HdfsNodeInfo workerUri) {
+    public Worker getWorkerFromUri(HdfsNodeInfo workerUri) {
         String address = WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort, workerUri.getHost(),
                 workerUri.getPort());
         try {

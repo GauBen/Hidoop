@@ -16,6 +16,8 @@ public class FragmentsHandler {
     static final int STATE_IN_PROGRESS = 1;
     static final int STATE_PROCESSED = 2;
 
+    private List<FragmentInfo> rawFragmentList;
+
     /**
      * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID La
      * string correspond à URI.toString
@@ -38,6 +40,8 @@ public class FragmentsHandler {
     private final HashMap<Integer, String> fragmentNodeUsed = new HashMap<>();
 
     public FragmentsHandler(List<FragmentInfo> allFragments) {
+        this.rawFragmentList = allFragments;
+
         for (FragmentInfo info : allFragments) {
             int id = info.id;
             HdfsNodeInfo uri = info.node;
@@ -108,6 +112,36 @@ public class FragmentsHandler {
         }else{
             return this.fragmentsTime.get(fragmentId);
         }
+    }
+
+    /**
+     * Used when a node fails to process a fragment to find an alternative node
+     * @param id
+     * @param nodeToAvoid
+     * @return
+     */
+    public FragmentInfo getAlternativeForFragment(int id, String nodeToAvoid){
+        for (FragmentInfo fragmentInfo : this.rawFragmentList){
+            if(fragmentInfo.id == id && !fragmentInfo.node.toString().equals(nodeToAvoid)){
+                System.out.println("Alternative trouvee pour le fragment " + id + " !");
+                this.fragmentsStates.put(fragmentInfo.id, STATE_IN_PROGRESS);
+                this.fragmentsTime.put(fragmentInfo.id, System.currentTimeMillis());
+                this.fragmentNodeUsed.put(fragmentInfo.id, fragmentInfo.node.toString());
+                return fragmentInfo;
+            }
+        }
+
+        System.out.println("Pas d'alternatives trouvee pour le fragment " + id + " !");
+        return null;
+    }
+
+    /**
+     * Who is processing the fragment
+     * @param fragmentId
+     * @return
+     */
+    public String getWorkerProcessingFragment(int fragmentId){
+        return this.fragmentNodeUsed.get(fragmentId);
     }
 
     /**
