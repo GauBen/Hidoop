@@ -442,16 +442,17 @@ public class HdfsNameServer {
     private void sendFragment(String fileName, int fragment, boolean lastPart, ByteArrayOutputStream bytes,
             int repFactor) {
 
+        if (!this.files.containsKey(fileName))
+            this.files.put(fileName, new HashMap<>());
+        this.files.get(fileName).put(fragment, new HashSet<>());
+
         // Permutation
         List<HdfsNodeInfo> permutation = new ArrayList<>(nodes);
         permutation.addAll(nodes);
         int startIndex = fragment % nodes.size();
-        List<HdfsNodeInfo> pickedNodes = permutation.subList(startIndex, startIndex + repFactor);
-
-        Set<HdfsNodeInfo> successfulNodes = new HashSet<>(pickedNodes);
 
         // Envoi
-        for (HdfsNodeInfo node : pickedNodes) {
+        for (HdfsNodeInfo node : permutation.subList(startIndex, startIndex + nodes.size())) {
 
             try (Socket sock = new Socket(node.getHost(), node.getPort());
                     BufferedOutputStream rawOutputStream = new BufferedOutputStream(sock.getOutputStream());
@@ -470,22 +471,18 @@ public class HdfsNameServer {
 
                 expectPong(new ObjectInputStream(sock.getInputStream()));
 
+                this.files.get(fileName).get(fragment).add(node);
+                repFactor--;
+
             } catch (IOException | ClassNotFoundException e) {
                 System.err.println("Erreur de connexion avec le noeud " + node);
-                successfulNodes.remove(node);
                 removeNode(node);
             }
 
-        }
+            if (repFactor <= 0) {
+                break;
+            }
 
-        // Enregistrement du noeud de chaque fragment
-        if (!this.files.containsKey(fileName))
-            this.files.put(fileName, new HashMap<>());
-
-        this.files.get(fileName).put(fragment, successfulNodes);
-
-        if (successfulNodes.size() < repFactor) {
-            // TODO
         }
 
     }
