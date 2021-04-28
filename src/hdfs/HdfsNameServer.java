@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -187,13 +189,20 @@ public class HdfsNameServer {
      * Lance l'attente des requêtes entrantes.
      */
     private void runListener() {
+        ExecutorService executor = (ExecutorService) Executors.newCachedThreadPool();
+
         while (true) {
-            try (Socket sock = this.server.accept()) {
-                // On traite la requête entrante
-                this.handleRequest(sock);
+            try {
+
+                Socket sock = this.server.accept();
+                executor.submit(new Runnable() {
+                    public void run() {
+                        HdfsNameServer.this.handleRequest(sock);
+                    }
+                });
+
             } catch (IOException e) {
-                e.printStackTrace();
-                System.err.println("Une connexion a échoué.");
+                System.err.println("Une connexion en erreur a été ignorée.");
             }
         }
     }
