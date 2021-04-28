@@ -257,7 +257,6 @@ public class HdfsNameServer {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
         } catch (ClassNotFoundException e) {
         }
 
@@ -282,28 +281,44 @@ public class HdfsNameServer {
             clientOutputStream.flush();
 
             Map<Integer, Set<HdfsNodeInfo>> file = this.files.get(name);
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream(BUFFER_SIZE);
 
             for (int fragment : file.keySet()) {
-                HdfsNodeInfo node = file.get(fragment).iterator().next();
 
-                try (Socket nodeSock = new Socket(node.getHost(), node.getPort())) {
+                for (HdfsNodeInfo node : new HashSet<>(file.get(fragment))) {
 
-                    ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream());
+                    buffer.reset();
+                    try (Socket nodeSock = new Socket(node.getHost(), node.getPort());
+                            ObjectOutputStream nodeOutputStream = new ObjectOutputStream(
+                                    new BufferedOutputStream(nodeSock.getOutputStream()))) {
 
-                    nodeOutputStream.writeObject(HdfsAction.READ);
-                    nodeOutputStream.writeObject(name);
-                    nodeOutputStream.writeObject(fragment);
+                        nodeOutputStream.flush();
+                        nodeOutputStream.writeObject(HdfsAction.READ);
+                        nodeOutputStream.writeObject(name);
+                        nodeOutputStream.writeObject(fragment);
+                        nodeOutputStream.flush();
 
-                    BufferedInputStream rawInput = new BufferedInputStream(nodeSock.getInputStream());
-                    rawInput.transferTo(clientOutputStream);
-                    clientOutputStream.flush();
+                        BufferedInputStream rawInput = new BufferedInputStream(nodeSock.getInputStream());
+                        rawInput.transferTo(buffer);
 
-                    nodeOutputStream.writeObject(HdfsAction.PONG);
+                        nodeOutputStream.writeObject(HdfsAction.PONG);
+                        nodeOutputStream.flush();
+                        nodeSock.shutdownOutput();
+                        break;
 
-                } catch (IOException e) {
-                    // TODO Chercher à contacter un autre noeud
-                    System.err.println("Un noeud a été déconnecté pendant le transfert");
+                    } catch (IOException e) {
+                        System.err.println("Un noeud a été déconnecté pendant le transfert");
+                        removeNode(node);
+                    }
                 }
+
+                if (buffer.size() == 0) {
+                    System.err.println("Impossible d'obtenir le fragment " + fragment + ", aucun noeud disponible");
+                    return;
+                }
+
+                buffer.writeTo(clientOutputStream);
+                clientOutputStream.flush();
 
             }
 

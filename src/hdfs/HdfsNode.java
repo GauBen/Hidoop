@@ -1,6 +1,7 @@
 package hdfs;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -12,7 +13,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
@@ -201,9 +201,8 @@ public class HdfsNode {
 
     private void handleRequest(Socket sock) {
 
-        try {
+        try (ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream())) {
 
-            ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
             HdfsAction action = (HdfsAction) inputStream.readObject();
 
             if (action == HdfsAction.PING) {
@@ -230,9 +229,10 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         File file = this.files.get(fileName).get(fragment);
 
-        OutputStream os = sock.getOutputStream();
-        os.write(Files.readAllBytes(Path.of(file.getAbsolutePath())));
-        os.close();
+        OutputStream os = new BufferedOutputStream(sock.getOutputStream());
+        Files.copy(file.toPath(), os);
+        os.flush();
+        sock.shutdownOutput();
 
         if (inputStream.readObject() != HdfsAction.PONG) {
             System.err.println("Pong non reçu, le serveur de nom a peut-être rencontré une erreur");
