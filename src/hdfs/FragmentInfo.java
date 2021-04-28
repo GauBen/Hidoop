@@ -26,4 +26,8 @@ public class FragmentInfo implements Serializable {
     public String getAbsolutePath() {
         return new File(this.root, this.getFragmentName()).getAbsolutePath();
     }
+
+    public static String makeFragmentName(String filename, int id, boolean lastPart) {
+        return new FragmentInfo(filename, id, lastPart, null, null).getFragmentName();
+    }
 }

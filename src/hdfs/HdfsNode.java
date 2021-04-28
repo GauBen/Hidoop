@@ -249,8 +249,7 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         boolean lastPart = (boolean) inputStream.readObject();
 
-        // TODO Extraire la génération des noms
-        File f = new File(this.nodeRoot, fileName + "." + fragment + (lastPart ? ".final" : "") + ".part");
+        File f = new File(this.nodeRoot, FragmentInfo.makeFragmentName(fileName, fragment, lastPart));
         Files.copy(rawInput, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         outputStream.writeObject(HdfsAction.PONG);
