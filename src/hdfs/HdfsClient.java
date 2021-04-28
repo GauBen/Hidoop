@@ -52,8 +52,7 @@ public class HdfsClient {
             out.writeObject(HdfsAction.READ);
             out.writeObject(f.getName());
 
-            BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
-            ObjectInputStream serverInputStream = new ObjectInputStream(in);
+            ObjectInputStream serverInputStream = new ObjectInputStream(new BufferedInputStream(sock.getInputStream()));
 
             // Réception des erreurs
             HdfsRuntimeException exception = (HdfsRuntimeException) serverInputStream.readObject();
@@ -61,7 +60,7 @@ public class HdfsClient {
                 throw exception;
             }
 
-            Files.copy(in, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(serverInputStream, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
 
             out.writeObject(HdfsAction.PONG);
             sock.close();
@@ -90,20 +89,28 @@ public class HdfsClient {
         try {
             // Connexion au serveur de nom
             Socket sock = newNameServerSocket();
-            BufferedOutputStream rawOut = new BufferedOutputStream(sock.getOutputStream());
-            ObjectOutputStream out = new ObjectOutputStream(rawOut);
+            ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(sock.getOutputStream()));
 
             // On l'informe qu'on veut écrire un fichier
             File f = new File(localFSSourceFname);
             out.writeObject(HdfsAction.WRITE);
             out.writeObject(f.getName());
+            out.writeInt(repFactor);
+            out.flush();
+
+            ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(sock.getInputStream()));
+            HdfsRuntimeException exception = (HdfsRuntimeException) in.readObject();
+
+            if (exception != null) {
+                throw exception;
+            }
 
             // On envoie le fichier
-            Files.copy(f.toPath(), rawOut);
-            rawOut.flush();
+            Files.copy(f.toPath(), out);
+            out.flush();
             sock.shutdownOutput();
 
-            Object response = new ObjectInputStream(sock.getInputStream()).readObject();
+            Object response = in.readObject();
             // TODO Gestion du pong
             assert response == HdfsAction.PONG;
             sock.close();
@@ -111,6 +118,8 @@ public class HdfsClient {
         } catch (IOException | ClassNotFoundException e) {
             // TODO Gestion de l'erreur d'écriture
             e.printStackTrace();
+        } catch (HdfsRuntimeException e) {
+            System.err.println("Erreur reçue : " + e.getMessage());
         }
     }
 
@@ -247,7 +256,7 @@ public class HdfsClient {
                 usage();
                 return;
             }
-            HdfsWrite(Format.Type.KV, args[1], 1);
+            HdfsWrite(Format.Type.KV, args[1], args.length < 3 ? 1 : Integer.parseInt(args[2]));
         }
     }
 
@@ -257,7 +266,7 @@ public class HdfsClient {
     private static void usage() {
         System.out.println("Usage:");
         System.out.println("  * HdfsClient read <file> <dest>");
-        System.out.println("  * HdfsClient write <file>");
+        System.out.println("  * HdfsClient write <file> <rep? = 1>");
         System.out.println("  * HdfsClient delete <file>");
         System.out.println("  * HdfsClient rescan");
     }

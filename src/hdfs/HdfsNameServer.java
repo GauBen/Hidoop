@@ -206,7 +206,7 @@ public class HdfsNameServer {
      * @param outputStream Flux d'objets sortants
      */
     private void handleRequest(Socket sock) {
-        try (ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream())) {
+        try (ObjectInputStream inputStream = new ObjectInputStream(new BufferedInputStream(sock.getInputStream()))) {
             HdfsAction action = (HdfsAction) inputStream.readObject();
 
             // On filtre l'action demandée
@@ -268,8 +268,8 @@ public class HdfsNameServer {
      */
     private void handleRead(Socket sock, ObjectInputStream inputStream) {
 
-        try (BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
-                ObjectOutputStream clientOutputStream = new ObjectOutputStream(bos)) {
+        try (ObjectOutputStream clientOutputStream = new ObjectOutputStream(
+                new BufferedOutputStream(sock.getOutputStream()))) {
 
             String name = (String) inputStream.readObject();
 
@@ -279,6 +279,7 @@ public class HdfsNameServer {
             }
 
             clientOutputStream.writeObject(null);
+            clientOutputStream.flush();
 
             Map<Integer, Set<HdfsNodeInfo>> file = this.files.get(name);
 
@@ -294,8 +295,8 @@ public class HdfsNameServer {
                     nodeOutputStream.writeObject(fragment);
 
                     BufferedInputStream rawInput = new BufferedInputStream(nodeSock.getInputStream());
-                    rawInput.transferTo(bos);
-                    bos.flush();
+                    rawInput.transferTo(clientOutputStream);
+                    clientOutputStream.flush();
 
                     nodeOutputStream.writeObject(HdfsAction.PONG);
 
@@ -318,45 +319,72 @@ public class HdfsNameServer {
 
     /**
      * Traite une requête d'écriture.
+     *
+     * @throws IOException
+     * @throws ClassNotFoundException
      */
     private void handleWrite(Socket sock, ObjectInputStream inputStream) {
 
-        if (this.nodes.isEmpty()) {
-            // TODO propagation de l'exception
-            throw new RuntimeException("0 noeud");
-        }
+        String name = null;
 
-        try (ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-                BufferedInputStream rawInput = new BufferedInputStream(sock.getInputStream())) {
+        try (ObjectOutputStream outputStream = new ObjectOutputStream(
+                new BufferedOutputStream(sock.getOutputStream()))) {
 
-            String name = (String) inputStream.readObject();
+            name = (String) inputStream.readObject();
+            int repFactor = inputStream.readInt();
+
+            System.out.println("Réception du fichier " + name + " (rep=" + repFactor + ")");
+
+            // Vérification de la requête
+            if (this.nodes.size() < repFactor) {
+                outputStream.writeObject(new HdfsRuntimeException("Il y a " + this.nodes.size()
+                        + " noeuds connectés, facteur de réplication " + repFactor + " trop grand"));
+                outputStream.flush();
+                return;
+            } else if (repFactor <= 0) {
+                outputStream.writeObject(new HdfsRuntimeException("facteur de réplication " + repFactor + " <= 0"));
+                outputStream.flush();
+            } else if (this.files.containsKey(name)) {
+                outputStream.writeObject(new HdfsRuntimeException("Le fichier " + name + " existe déjà"));
+                outputStream.flush();
+            }
+            outputStream.writeObject(null);
+            outputStream.flush();
+
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
             int fragment = 0;
             int input;
 
-            while (rawInput.available() > 0) {
+            int nextByte = inputStream.read();
+
+            while (nextByte >= 0) {
                 buffer.reset();
-                buffer.write(rawInput.readNBytes(BUFFER_SIZE));
-                while ((input = rawInput.read()) != -1) {
+                buffer.write(nextByte);
+                buffer.write(inputStream.readNBytes(BUFFER_SIZE));
+                while ((input = inputStream.read()) != -1) {
                     buffer.write(input);
                     if ((char) input == '\n') {
                         break;
                     }
                 }
 
-                sendFragment(name, fragment, rawInput.available() == 0, buffer);
+                nextByte = inputStream.read();
+
+                sendFragment(name, fragment, nextByte < 0, buffer, repFactor);
 
                 fragment++;
             }
 
             outputStream.writeObject(HdfsAction.PONG);
+            outputStream.flush();
+
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            System.err.println("Connexion perdue avec le client, suppression des fragments envoyés.");
+            if (name != null) {
+                this.deleteFile(name);
+            }
         } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
 
     }
@@ -368,17 +396,14 @@ public class HdfsNameServer {
      * @param lastPart
      * @param buffer
      */
-    private void sendFragment(String fileName, int fragment, boolean lastPart, ByteArrayOutputStream bytes) {
-
-        // Nombre de noeuds sur lesquels chaque fragment est stocké
-        // La fonctionnalité est implémentée, bien qu'inaccessible
-        final int REP = 2;
+    private void sendFragment(String fileName, int fragment, boolean lastPart, ByteArrayOutputStream bytes,
+            int repFactor) {
 
         // Permutation
         List<HdfsNodeInfo> permutation = new ArrayList<>(nodes);
         permutation.addAll(nodes);
         int startIndex = fragment % nodes.size();
-        List<HdfsNodeInfo> pickedNodes = permutation.subList(startIndex, startIndex + REP);
+        List<HdfsNodeInfo> pickedNodes = permutation.subList(startIndex, startIndex + repFactor);
 
         Set<HdfsNodeInfo> successfulNodes = new HashSet<>(pickedNodes);
 
@@ -416,7 +441,7 @@ public class HdfsNameServer {
 
         this.files.get(fileName).put(fragment, successfulNodes);
 
-        if (successfulNodes.size() < REP) {
+        if (successfulNodes.size() < repFactor) {
             // TODO
         }
 
@@ -427,6 +452,17 @@ public class HdfsNameServer {
      */
     private void handleDelete(Socket sock, ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
         String filename = (String) inputStream.readObject();
+        deleteFile(filename);
+        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
+        outputStream.writeObject(HdfsAction.PONG);
+    }
+
+    /**
+     * Supprime un fichier des noeuds connectés.
+     *
+     * @param filename
+     */
+    private void deleteFile(String filename) {
         for (HdfsNodeInfo uri : new HashSet<>(this.nodes)) {
 
             try {
@@ -445,9 +481,6 @@ public class HdfsNameServer {
             }
         }
         this.files.remove(filename);
-
-        ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-        outputStream.writeObject(HdfsAction.PONG);
     }
 
     /**
