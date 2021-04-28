@@ -84,7 +84,7 @@ public class HdfsClient {
     /**
      * Écriture d'un fichier local vers les noeuds HDFS, après avoir été fragmenté.
      *
-     * @param fmt                Le format du fichier (Line ou KV)
+     * @param fmt                Ignoré, conservé pour rétro-compatibilité
      * @param localFSSourceFname Fichier local
      * @param repFactor          Facteur de duplication (ignoré, toujours 1)
      */
@@ -114,8 +114,9 @@ public class HdfsClient {
             sock.shutdownOutput();
 
             Object response = in.readObject();
-            // TODO Gestion du pong
-            assert response == HdfsAction.PONG;
+            if (response != HdfsAction.PONG) {
+                throw new HdfsRuntimeException("Le serveur a rencontré une erreur lors du téléchargement");
+            }
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
@@ -142,13 +143,13 @@ public class HdfsClient {
             out.writeObject(hdfsFname);
 
             Object response = new ObjectInputStream(sock.getInputStream()).readObject();
-            // TODO Gestion du pong
-            assert response == HdfsAction.PONG;
+            if (response != HdfsAction.PONG) {
+                throw new HdfsRuntimeException("Le serveur a rencontré une erreur lors de la suppression");
+            }
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
-            // TODO Gestion de l'erreur de suppression
-            e.printStackTrace();
+            throw new HdfsRuntimeException(e);
         }
     }
 
@@ -206,9 +207,7 @@ public class HdfsClient {
             return Collections.unmodifiableSet(set);
 
         } catch (IOException | ClassNotFoundException e) {
-            // TODO Gestion de l'erreur de récupération de la liste
-            e.printStackTrace();
-            return null;
+            throw new HdfsRuntimeException(e);
         }
     }
 
@@ -223,13 +222,13 @@ public class HdfsClient {
             ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
             out.writeObject(HdfsAction.FORCE_RESCAN);
 
-            // TODO Gestion du pong
-            ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
-            assert HdfsAction.PONG == new ObjectInputStream(in).readObject();
+            Object response = new ObjectInputStream(sock.getInputStream()).readObject();
+            if (response != HdfsAction.PONG) {
+                throw new HdfsRuntimeException("Le serveur a rencontré une erreur lors du rafraîchissement");
+            }
 
         } catch (IOException | ClassNotFoundException e) {
-            // TODO Gestion de l'erreur du rafraichissement
-            e.printStackTrace();
+            throw new HdfsRuntimeException(e);
         }
     }
 
