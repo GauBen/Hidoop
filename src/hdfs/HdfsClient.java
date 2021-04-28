@@ -66,14 +66,17 @@ public class HdfsClient {
             sock.close();
 
         } catch (IOException e) {
-            System.err.println("La lecture a échoué.");
+            System.err.println("La lecture a échoué, suppression du fichier local.");
             try {
                 Files.delete(Path.of(localFSDestFname));
             } catch (IOException e2) {
             }
+            throw new HdfsRuntimeException(e);
         } catch (ClassNotFoundException e) {
+            throw new HdfsRuntimeException(e);
         } catch (HdfsRuntimeException e) {
             System.err.println("Erreur reçue : " + e.getMessage());
+            throw e;
         }
 
     }
@@ -116,10 +119,10 @@ public class HdfsClient {
             sock.close();
 
         } catch (IOException | ClassNotFoundException e) {
-            // TODO Gestion de l'erreur d'écriture
-            e.printStackTrace();
+            throw new HdfsRuntimeException(e);
         } catch (HdfsRuntimeException e) {
             System.err.println("Erreur reçue : " + e.getMessage());
+            throw e;
         }
     }
 
