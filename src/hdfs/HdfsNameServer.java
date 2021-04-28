@@ -466,7 +466,6 @@ public class HdfsNameServer {
         for (HdfsNodeInfo uri : new HashSet<>(this.nodes)) {
 
             try {
-
                 Socket nodeSock = new Socket(uri.getHost(), uri.getPort());
                 ObjectOutputStream out = new ObjectOutputStream(nodeSock.getOutputStream());
 
@@ -476,8 +475,7 @@ public class HdfsNameServer {
 
                 expectPong(new ObjectInputStream(nodeSock.getInputStream()));
             } catch (IOException | ClassNotFoundException e) {
-                // TODO Déconnecter les noeuds proprement
-                e.printStackTrace();
+                removeNode(uri);
             }
         }
         this.files.remove(filename);
@@ -544,16 +542,17 @@ public class HdfsNameServer {
      * Affiche la liste des fichiers disponibles sur le réseau.
      */
     private void printFiles() {
-        // TODO Meilleur affichage
+        if (this.files.size() == 0) {
+            return;
+        }
+        System.out.println();
         System.out.println("Fichiers :");
         boolean empty = true;
         for (String fileName : this.files.keySet()) {
-            System.out.println(" * " + fileName + " : " + (this.isFileComplete(fileName) ? "complet" : "incomplet"));
+            System.out.println(" - " + fileName + " : " + (this.isFileComplete(fileName) ? "complet" : "incomplet"));
             empty = false;
         }
-        if (empty) {
-            System.out.println(" (vide)");
-        }
+        System.out.println();
     }
 
     /**
