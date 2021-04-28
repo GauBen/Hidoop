@@ -184,8 +184,8 @@ public class HdfsNode {
 
         while (true) {
             try {
-                Socket sock = this.server.accept();
 
+                Socket sock = this.server.accept();
                 executor.submit(new Runnable() {
                     public void run() {
                         HdfsNode.this.handleRequest(sock);
