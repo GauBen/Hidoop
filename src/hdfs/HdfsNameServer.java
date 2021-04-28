@@ -311,8 +311,7 @@ public class HdfsNameServer {
             expectPong(inputStream);
 
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            System.err.println("Client déconnecté avant la fin de la lecture, lecture annulée.");
         } catch (ClassNotFoundException e) {
         }
     }
