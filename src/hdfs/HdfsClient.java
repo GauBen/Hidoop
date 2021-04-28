@@ -152,6 +152,14 @@ public class HdfsClient {
         }
     }
 
+    /**
+     * Demande la liste des fragments d'un fichier distant.
+     *
+     * Remarque : un fichier peut être répliqué, d'où List<List<FragmentInfo>>
+     *
+     * @param hdfsFilename
+     * @return
+     */
     public static List<List<FragmentInfo>> listFragments(String hdfsFilename) {
         try {
             Socket sock = newNameServerSocket();
