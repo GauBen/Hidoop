@@ -257,9 +257,11 @@ public class HdfsClient {
             break;
         case "read":
             HdfsRead(args[1], args.length < 3 ? null : args[2]);
+            System.out.println("Téléchargement réalisé avec succès");
             break;
         case "delete":
             HdfsDelete(args[1]);
+            System.out.println("Suppresion réalisée avec succès");
             break;
         case "write":
             if (args.length < 2) {
@@ -267,6 +269,7 @@ public class HdfsClient {
                 return;
             }
             HdfsWrite(Format.Type.KV, args[1], args.length < 3 ? 1 : Integer.parseInt(args[2]));
+            System.out.println("Upload réalisé avec succès");
         }
     }
 
