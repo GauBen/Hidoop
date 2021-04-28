@@ -157,6 +157,15 @@ public class HdfsNode {
                     continue;
                 }
 
+                try {
+                    if (!lastPart && Files.size(f.toPath()) < HdfsNameServer.BUFFER_SIZE) {
+                        Files.delete(f.toPath());
+                        continue;
+                    }
+                } catch (IOException e) {
+                    continue;
+                }
+
                 // On sauvegarde le fragment
                 if (!files.containsKey(originalName)) {
                     files.put(originalName, new HashMap<>());
