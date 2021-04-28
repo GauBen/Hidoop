@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class HdfsNode {
 
@@ -178,16 +180,17 @@ public class HdfsNode {
      */
     private void runListener() {
 
+        ExecutorService executor = (ExecutorService) Executors.newCachedThreadPool();
+
         while (true) {
             try {
                 Socket sock = this.server.accept();
 
-                // TODO worker pool
-                new Thread(new Runnable() {
+                executor.submit(new Runnable() {
                     public void run() {
                         HdfsNode.this.handleRequest(sock);
                     }
-                }).start();
+                });
 
             } catch (IOException e) {
                 System.err.println("Une connexion en erreur a été ignorée.");
