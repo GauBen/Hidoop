@@ -161,9 +161,8 @@ public class HdfsClient {
             return Collections.unmodifiableList(lst);
 
         } catch (IOException | ClassNotFoundException e) {
-            // TODO Gestion de l'erreur de récupération de la liste
-            e.printStackTrace();
-            return null;
+            System.err.println("Une erreur de connexion a eu lieu lors de la récupération des fragments.");
+            throw new HdfsRuntimeException(e);
         }
     }
 
