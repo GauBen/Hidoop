@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
@@ -229,7 +228,8 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         File file = this.files.get(fileName).get(fragment);
 
-        OutputStream os = new BufferedOutputStream(sock.getOutputStream());
+        ObjectOutputStream os = new ObjectOutputStream(new BufferedOutputStream(sock.getOutputStream()));
+        os.writeLong(Files.size(file.toPath()));
         Files.copy(file.toPath(), os);
         os.flush();
         sock.shutdownOutput();

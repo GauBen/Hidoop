@@ -8,7 +8,9 @@ package hdfs;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -16,7 +18,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,7 +42,7 @@ public class HdfsClient {
     public static void HdfsRead(String hdfsFname, String localFSDestFname) {
         Objects.requireNonNull(localFSDestFname);
 
-        try {
+        try (BufferedOutputStream file = new BufferedOutputStream(new FileOutputStream(localFSDestFname))) {
 
             // Connexion au premier noeud
             Socket sock = newNameServerSocket();
@@ -60,7 +61,25 @@ public class HdfsClient {
                 throw exception;
             }
 
-            Files.copy(serverInputStream, Path.of(localFSDestFname), StandardCopyOption.REPLACE_EXISTING);
+            int number_of_fragments = serverInputStream.readInt();
+            int size = serverInputStream.readInt();
+            ByteArrayInputStream buffer = null;
+
+            int i = 1;
+
+            while (size > 0) {
+                System.out.print("\r" + i + "/" + number_of_fragments + " fragments");
+                buffer = new ByteArrayInputStream(serverInputStream.readNBytes(size));
+                buffer.transferTo(file);
+                size = serverInputStream.readInt();
+                i++;
+            }
+
+            System.out.println();
+
+            if (size < 0) {
+                throw new HdfsRuntimeException("Le fichier ne peut pas être téléchargé en entier");
+            }
 
             out.writeObject(HdfsAction.PONG);
             sock.close();
@@ -76,6 +95,10 @@ public class HdfsClient {
             throw new HdfsRuntimeException(e);
         } catch (HdfsRuntimeException e) {
             System.err.println("Erreur reçue : " + e.getMessage());
+            try {
+                Files.delete(Path.of(localFSDestFname));
+            } catch (IOException e2) {
+            }
             throw e;
         }
 

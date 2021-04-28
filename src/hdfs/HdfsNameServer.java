@@ -292,9 +292,12 @@ public class HdfsNameServer {
             Map<Integer, Set<HdfsNodeInfo>> file = this.files.get(name);
             ByteArrayOutputStream buffer = new ByteArrayOutputStream(BUFFER_SIZE);
 
-            for (int fragment : file.keySet()) {
+            clientOutputStream.writeInt(file.size());
+            clientOutputStream.flush();
 
-                for (HdfsNodeInfo node : new HashSet<>(file.get(fragment))) {
+            for (int fragment = 0, number_of_fragments = file.size(); fragment < number_of_fragments; fragment++) {
+
+                for (HdfsNodeInfo node : new HashSet<>(this.files.get(name).get(fragment))) {
 
                     buffer.reset();
                     try (Socket nodeSock = new Socket(node.getHost(), node.getPort());
@@ -307,8 +310,14 @@ public class HdfsNameServer {
                         nodeOutputStream.writeObject(fragment);
                         nodeOutputStream.flush();
 
-                        BufferedInputStream rawInput = new BufferedInputStream(nodeSock.getInputStream());
-                        rawInput.transferTo(buffer);
+                        ObjectInputStream input = new ObjectInputStream(
+                                new BufferedInputStream(nodeSock.getInputStream()));
+                        long size = input.readLong();
+                        input.transferTo(buffer);
+
+                        if (size != buffer.size()) {
+                            throw new SocketException("Incomplete payload");
+                        }
 
                         nodeOutputStream.writeObject(HdfsAction.PONG);
                         nodeOutputStream.flush();
@@ -316,20 +325,31 @@ public class HdfsNameServer {
                         break;
 
                     } catch (IOException e) {
-                        System.err.println("Un noeud a été déconnecté pendant le transfert");
+                        System.err.println("Un noeud a été déconnecté pendant le transfert.");
                         removeNode(node);
+                        buffer.reset();
                     }
+
                 }
 
                 if (buffer.size() == 0) {
-                    System.err.println("Impossible d'obtenir le fragment " + fragment + ", aucun noeud disponible");
+                    System.err.println("Impossible d'obtenir le fragment " + fragment + ", aucun noeud disponible.");
+                    clientOutputStream.writeInt(-1);
+                    clientOutputStream.flush();
+                    sock.close();
                     return;
                 }
 
+                System.out.println(buffer.size());
+
+                clientOutputStream.writeInt(buffer.size());
                 buffer.writeTo(clientOutputStream);
                 clientOutputStream.flush();
 
             }
+
+            clientOutputStream.writeInt(0);
+            clientOutputStream.flush();
 
             sock.shutdownOutput();
             expectPong(inputStream);
@@ -568,12 +588,10 @@ public class HdfsNameServer {
         if (this.files.size() == 0) {
             return;
         }
-        System.out.println();
         System.out.println("Fichiers :");
         for (String fileName : this.files.keySet()) {
             System.out.println(" - " + fileName + " : " + (this.isFileComplete(fileName) ? "complet" : "incomplet"));
         }
-        System.out.println();
     }
 
     /**
