@@ -547,10 +547,8 @@ public class HdfsNameServer {
         }
         System.out.println();
         System.out.println("Fichiers :");
-        boolean empty = true;
         for (String fileName : this.files.keySet()) {
             System.out.println(" - " + fileName + " : " + (this.isFileComplete(fileName) ? "complet" : "incomplet"));
-            empty = false;
         }
         System.out.println();
     }
