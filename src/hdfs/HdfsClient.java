@@ -86,7 +86,7 @@ public class HdfsClient {
      *
      * @param fmt                Ignoré, conservé pour rétro-compatibilité
      * @param localFSSourceFname Fichier local
-     * @param repFactor          Facteur de duplication (ignoré, toujours 1)
+     * @param repFactor          Facteur de duplication
      */
     public static void HdfsWrite(Format.Type fmt, String localFSSourceFname, int repFactor) {
         try {
