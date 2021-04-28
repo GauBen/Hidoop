@@ -350,7 +350,7 @@ public class HdfsNameServer {
             outputStream.writeObject(null);
             outputStream.flush();
 
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream(BUFFER_SIZE);
 
             int fragment = 0;
             int input;
