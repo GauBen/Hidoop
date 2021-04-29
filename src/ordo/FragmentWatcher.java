@@ -21,6 +21,10 @@ public class FragmentWatcher extends TimerTask {
 
         List<Integer> currentlyProcessing = fragmentsHandler.currentlyProcessingFragmentIds();
 
+        if(fragmentsHandler.finishedFragments() < Job.job.getNumberOfMaps() / 10){ // Si moins de 10% des frag ont etes traites, la moyenne de temps n'est pas fiable
+            return;
+        }
+
         for(int fragId : currentlyProcessing){
             if(fragmentsHandler.getExecutionTime(fragId) > RESTART_THRESHOLD * averageTime){
                 // Restart the job on an other node
