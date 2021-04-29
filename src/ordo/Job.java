@@ -11,6 +11,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Timer;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,8 @@ public class Job implements JobInterfaceX {
     private Semaphore waitForFinish = new Semaphore(0);
 
     public static CallBack callBack;
+
+    FragmentWatcher fragmentWatcherTask = new FragmentWatcher();
 
     public Job() {
         super();
@@ -133,12 +136,19 @@ public class Job implements JobInterfaceX {
             }
         }
 
+        Timer timer = new Timer(); // Used to watch fragments regularly
+        timer.scheduleAtFixedRate(fragmentWatcherTask, 1000, 250);
+
         // We wait for the job to finish
         try {
             this.waitForFinish.acquire();
+            timer.cancel(); // Stop watching the fragments
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+
+
 
     }
 
