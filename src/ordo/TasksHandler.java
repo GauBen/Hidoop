@@ -49,6 +49,11 @@ public class TasksHandler {
         return null;
     }
 
+    public void setTaskDone(int taskId){
+        //this.tasksTime.put(taskId, System.currentTimeMillis() - this.tasksTime.get(fragmentId));
+        this.tasksStates.put(taskId, STATE_PROCESSED);
+    }
+
 
 
 

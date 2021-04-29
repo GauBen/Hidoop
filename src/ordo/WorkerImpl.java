@@ -87,7 +87,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
     }
 
     public static String workerAddress(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs,
-            int portDuNodeHdfs) {
+                                       int portDuNodeHdfs) {
         return "//" + hostDuRmi + ":" + portDuRmi + "/worker/" + hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
     }
 
@@ -130,6 +130,42 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     @Override
     public void runFileLessMap(FileLessMapperReducer m, HidoopTask task, Format writer, CallBack cb) throws RemoteException {
+        System.out.println("> Je m'occupe d'une tache");
+
+        Thread thread = new Thread() {
+            public void run() {
+
+                long startTime = System.currentTimeMillis();
+                System.out.println("> Creating a temporary file... " + writer.getFname());
+                File tempResultFile = new File(writer.getFname());
+                try {
+                    tempResultFile.createNewFile();
+                } catch (IOException e2) {
+                    // TODO Auto-generated catch block
+                    e2.printStackTrace();
+                }
+
+                // Get the fragment ID
+                int fragmentNumber = Integer.parseInt(writer.getFname().replaceAll("\\D", ""));
+
+
+                // OK
+                writer.open(OpenMode.W);
+
+                m.map(task, writer);
+
+                try {
+                    long endTime = System.currentTimeMillis();
+                    cb.done(WorkerImpl.this.uri, endTime - startTime, fragmentNumber);
+                } catch (RemoteException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        };
+
+        thread.start();
 
     }
 

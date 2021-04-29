@@ -199,7 +199,8 @@ public class Job implements JobInterfaceX {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
-                    this.attributeNewTaskTo(worker, workerUri, callBack);
+                    //TODO : cache worker so it doesn't need to be fetch in RMI each time
+                    this.attributeNewTaskTo(workerUri, callBack);
                 }
             } catch (RemoteException e) {
                 System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
@@ -224,11 +225,11 @@ public class Job implements JobInterfaceX {
         }
     }
 
-    public void attributeNewTaskTo(Worker worker, HdfsNodeInfo workerUri, CallBack callBack){
+    public void attributeNewTaskTo(HdfsNodeInfo workerUri, CallBack callBack){
         HidoopTask task = this.tasksHandler.getAvailableTask();
 
         if(task != null){
-            this.executeTask(worker, workerUri, task, callBack);
+            this.executeTask(workerUri, task, callBack);
         }
     }
 
@@ -263,7 +264,9 @@ public class Job implements JobInterfaceX {
      * @param task
      * @param callBack
      */
-    public void executeTask(Worker worker, HdfsNodeInfo workerUri, HidoopTask task, CallBack callBack) {
+    public void executeTask( HdfsNodeInfo workerUri, HidoopTask task, CallBack callBack) {
+        Worker worker = this.getWorkerFromUri(workerUri);
+
         int idTask = this.tasks.indexOf(task);
 
         // TODO : tester quand la méthode sera définie
@@ -490,5 +493,9 @@ public class Job implements JobInterfaceX {
 
     public void setTasks(List<HidoopTask> tasks) {
         this.tasks = tasks;
+    }
+
+    public TasksHandler getTasksHandler() {
+        return tasksHandler;
     }
 }
