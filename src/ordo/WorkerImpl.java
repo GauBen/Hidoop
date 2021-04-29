@@ -1,5 +1,6 @@
 package ordo;
 
+import map.FileLessMapperReducer;
 import application.RmiCustomInterface;
 import formats.Format;
 import formats.Format.OpenMode;
@@ -124,6 +125,11 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         } catch (RemoteException | URISyntaxException e1) {
             e1.printStackTrace();
         }
+
+    }
+
+    @Override
+    public void runFileLessMap(FileLessMapperReducer m, HidoopTask task, Format writer, CallBack cb) throws RemoteException {
 
     }
 

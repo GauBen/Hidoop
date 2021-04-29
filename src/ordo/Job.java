@@ -11,6 +11,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
@@ -51,6 +52,18 @@ public class Job implements JobInterfaceX {
 
     FragmentWatcher fragmentWatcherTask = new FragmentWatcher();
 
+    private boolean isFileless = false;
+
+    /**
+     * Number of the latest task started
+     */
+    public int taskNum = 0;
+
+    /**
+     * If a job is fileless, it is defined by a list of tasks to do
+     */
+    private List<HidoopTask> tasks;
+
     public Job() {
         super();
         // Ces valeurs sont écrasées plus tard
@@ -66,11 +79,10 @@ public class Job implements JobInterfaceX {
      * Returns a job that requires no input
      * @return
      */
-    public static Job FileLessJob() {
-        Job job = new Job();
-
-
-
+    public static Job FileLessJob(List<HidoopTask> tasks) {
+        Job filelessJob = new Job();
+        filelessJob.setFileless(true);
+        filelessJob.setTasks(tasks);
         return job;
     }
 
@@ -95,6 +107,14 @@ public class Job implements JobInterfaceX {
     @Override
     public void startJob(MapReduce mr) {
         this.mapReduce = mr;
+
+        if(this.isFileless()){
+            // Si on ne prend pas de fichier en input, on va fonctionner differemment
+            // On appelle une fonction differente pour etre sur de ne rien casser ici
+            startFilelessJob();
+            return;
+        }
+
 
         List<List<FragmentInfo>> fragmentsTable = HdfsClient.listFragments(this.inputFname);
 
@@ -147,10 +167,45 @@ public class Job implements JobInterfaceX {
             e.printStackTrace();
         }
 
+    }
 
+    public void startFilelessJob(){
 
+        this.numberOfMaps = this.getTasks().size();
+
+        try {
+            callBack = new CallBackImpl(this.getNumberOfMaps());
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            return;
+        }
+        Set<HdfsNodeInfo> nodes = HdfsClient.listNodes();
+
+        for (HdfsNodeInfo workerUri : nodes) {
+            Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
+            try {
+                for (int i = 0; i < worker.getNumberOfCores(); i++) {
+                    if(taskNum < getTasks().size()){
+                        HidoopTask task = this.getTasks().get(taskNum);
+                        taskNum++;
+
+                        //TODO: lancer la task sur la machine
+
+                    }
+                   // FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+
+                 //   if (info != null) {
+                   //     this.executeWork(worker, info, callBack);
+                    //}
+
+                }
+            } catch (RemoteException e) {
+                System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
+            }
+        }
 
     }
+
 
     public void attributeNewWorkTo(HdfsNodeInfo workerUri, CallBack callBack) {
         FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
@@ -382,4 +437,19 @@ public class Job implements JobInterfaceX {
         this.sortComparator = sc;
     }
 
+    public boolean isFileless() {
+        return isFileless;
+    }
+
+    public void setFileless(boolean fileless) {
+        isFileless = fileless;
+    }
+
+    public List<HidoopTask> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<HidoopTask> tasks) {
+        this.tasks = tasks;
+    }
 }
