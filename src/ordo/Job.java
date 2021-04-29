@@ -23,6 +23,7 @@ import formats.LineFormat;
 import hdfs.FragmentInfo;
 import hdfs.HdfsClient;
 import hdfs.HdfsNodeInfo;
+import map.FileLessMapperReducer;
 import map.MapReduce;
 
 public class Job implements JobInterfaceX {
@@ -52,17 +53,27 @@ public class Job implements JobInterfaceX {
 
     FragmentWatcher fragmentWatcherTask = new FragmentWatcher();
 
-    private boolean isFileless = false;
 
     /**
-     * Number of the latest task started
+     *  _____   _   _          _
+     *  |  ___| (_) | |   ___  | |   ___   ___   ___
+     *  | |_    | | | |  / _ \ | |  / _ \ / __| / __|
+     *  |  _|   | | | | |  __/ | | |  __/ \__ \ \__ \
+     *  |_|     |_| |_|  \___| |_|  \___| |___/ |___/
+     *
      */
-    public int taskNum = 0;
+
+    /**
+     * True if the application doesn't require a file for input
+     */
+    private boolean isFileless = false;
 
     /**
      * If a job is fileless, it is defined by a list of tasks to do
      */
     private List<HidoopTask> tasks;
+
+    private TasksHandler tasksHandler;
 
     public Job() {
         super();
@@ -77,6 +88,7 @@ public class Job implements JobInterfaceX {
 
     /**
      * Returns a job that requires no input
+     *
      * @return
      */
     public static Job FileLessJob(List<HidoopTask> tasks) {
@@ -108,7 +120,7 @@ public class Job implements JobInterfaceX {
     public void startJob(MapReduce mr) {
         this.mapReduce = mr;
 
-        if(this.isFileless()){
+        if (this.isFileless()) {
             // Si on ne prend pas de fichier en input, on va fonctionner differemment
             // On appelle une fonction differente pour etre sur de ne rien casser ici
             startFilelessJob();
@@ -169,9 +181,11 @@ public class Job implements JobInterfaceX {
 
     }
 
-    public void startFilelessJob(){
+    public void startFilelessJob() {
 
         this.numberOfMaps = this.getTasks().size();
+
+        this.tasksHandler = new TasksHandler(tasks);
 
         try {
             callBack = new CallBackImpl(this.getNumberOfMaps());
@@ -185,19 +199,7 @@ public class Job implements JobInterfaceX {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
-                    if(taskNum < getTasks().size()){
-                        HidoopTask task = this.getTasks().get(taskNum);
-                        taskNum++;
-
-                        //TODO: lancer la task sur la machine
-
-                    }
-                   // FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
-
-                 //   if (info != null) {
-                   //     this.executeWork(worker, info, callBack);
-                    //}
-
+                    this.attributeNewTaskTo(worker, workerUri, callBack);
                 }
             } catch (RemoteException e) {
                 System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
@@ -222,6 +224,20 @@ public class Job implements JobInterfaceX {
         }
     }
 
+    public void attributeNewTaskTo(Worker worker, HdfsNodeInfo workerUri, CallBack callBack){
+        HidoopTask task = this.tasksHandler.getAvailableTask();
+
+        if(task != null){
+            this.executeTask(worker, workerUri, task, callBack);
+        }
+    }
+
+    /**
+     * Map on worker the Fragment associated with info
+     * @param worker
+     * @param info
+     * @param callBack
+     */
     public void executeWork(Worker worker, FragmentInfo info, CallBack callBack) {
 
         // Set the Format
@@ -235,6 +251,29 @@ public class Job implements JobInterfaceX {
 
         try {
             worker.runMap(this.mapReduce, iFormat, oFormat, callBack);
+        } catch (RemoteException e) {
+            System.out.println("Impossible de demarrer le runMap sur le worker ! ");
+        }
+
+    }
+
+    /**
+     * Map on the worker associated with workerUri the task
+     * @param workerUri
+     * @param task
+     * @param callBack
+     */
+    public void executeTask(Worker worker, HdfsNodeInfo workerUri, HidoopTask task, CallBack callBack) {
+        int idTask = this.tasks.indexOf(task);
+
+        // TODO : tester quand la méthode sera définie
+        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), idTask, idTask == (tasks.size() - 1), workerUri,
+                workerUri.getRoot());
+
+        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
+
+        try {
+            worker.runFileLessMap((FileLessMapperReducer) this.mapReduce, task, oFormat, callBack);
         } catch (RemoteException e) {
             System.out.println("Impossible de demarrer le runMap sur le worker ! ");
         }
@@ -347,14 +386,14 @@ public class Job implements JobInterfaceX {
     public Format getFormatFromType(Format.Type type, String fName) {
         Format format;
         switch (type) {
-        case KV:
-            format = new KVFormat(fName);
-            break;
-        case LINE:
-            format = new LineFormat(fName);
-            break;
-        default:
-            format = null;
+            case KV:
+                format = new KVFormat(fName);
+                break;
+            case LINE:
+                format = new LineFormat(fName);
+                break;
+            default:
+                format = null;
         }
         if (format == null) {
             throw new RuntimeException("Invalid format " + type);
