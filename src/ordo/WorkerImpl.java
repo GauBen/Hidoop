@@ -1,13 +1,16 @@
 package ordo;
 
+import map.FileLessMapperReducer;
 import application.RmiCustomInterface;
 import formats.Format;
 import formats.Format.OpenMode;
+import hdfs.HdfsNodeInfo;
 import map.Mapper;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -24,10 +27,16 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     public String id;
 
+    public HdfsNodeInfo uri;
+
     public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
-            throws RemoteException {
+            throws RemoteException, URISyntaxException {
         super();
         this.id = hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
+
+
+        this.uri = new HdfsNodeInfo(hostDistantDuNoeudHdfs, portDuNodeHdfs, "");
+
         try {
 
             Registry registry = LocateRegistry.getRegistry(hostDuRmi, portDuRmi);
@@ -113,9 +122,14 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
         try {
             new WorkerImpl(hostDuRmi, portDuRmi, hostDuNoeudHdfs, portDuNoeudHdfs);
-        } catch (RemoteException e1) {
+        } catch (RemoteException | URISyntaxException e1) {
             e1.printStackTrace();
         }
+
+    }
+
+    @Override
+    public void runFileLessMap(FileLessMapperReducer m, HidoopTask task, Format writer, CallBack cb) throws RemoteException {
 
     }
 
@@ -140,6 +154,9 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                 // On recupere notre gragment a traiter
                 File file = new File(reader.getFname());
 
+                // Get the fragment ID
+                int fragmentNumber = Integer.parseInt(reader.getFname().replaceAll("\\D", ""));
+
                 if (file.isFile() && !file.isDirectory()) {
                     // OK
                     reader.open(OpenMode.R);
@@ -149,7 +166,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
                     try {
                         long endTime = System.currentTimeMillis();
-                        cb.done(id, endTime - startTime);
+                        cb.done(WorkerImpl.this.uri, endTime - startTime, fragmentNumber);
                     } catch (RemoteException | InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -167,6 +184,11 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
         thread.start();
 
+    }
+
+    @Override
+    public int getNumberOfCores() throws RemoteException {
+        return Runtime.getRuntime().availableProcessors();
     }
 
 }

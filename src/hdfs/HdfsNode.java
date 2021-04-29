@@ -1,19 +1,22 @@
 package hdfs;
 
-import hdfs.HdfsNameServer.Action;
-
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class HdfsNode {
 
@@ -59,21 +62,15 @@ public class HdfsNode {
         try {
             this.openServer();
         } catch (IOException e) {
-            // TODO Meilleur intégration avec le BiNode
             System.out.println("Impossible d'obtenir un port libre.");
-            return;
+            throw new HdfsRuntimeException(e);
         }
 
         // On scanne le dossier courant
         this.scanDir();
 
         // On contacte le NameServer
-        try {
-            this.initNode();
-        } catch (RuntimeException e) {
-            System.out.println(e.getMessage());
-            return;
-        }
+        this.initNode();
 
         System.out.println();
         System.out.println("Initialisation :");
@@ -89,7 +86,6 @@ public class HdfsNode {
      */
     public void run() {
         this.runPinger();
-
         this.runListener();
     }
 
@@ -100,16 +96,19 @@ public class HdfsNode {
 
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
-            outputStream.writeObject(Action.NEW_NODE);
+            System.out.println(
+                    "Initialisation du serveur: port=" + this.server.getLocalPort() + "; root=" + this.nodeRoot);
+
+            outputStream.writeObject(HdfsAction.NEW_NODE);
             outputStream.writeObject(this.server.getLocalPort());
             outputStream.writeObject(this.nodeRoot);
             outputStream.writeObject(this.files);
 
             this.externalHostname = (String) new ObjectInputStream(sock.getInputStream()).readObject();
 
-        } catch (IOException | AssertionError | ClassNotFoundException e) {
-            // TODO check ça
-            throw new RuntimeException("Le NameServer n'est pas joignable.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Le NameServer n'est pas joignable.");
+            throw new HdfsRuntimeException(e);
         }
 
     }
@@ -158,6 +157,15 @@ public class HdfsNode {
                     continue;
                 }
 
+                try {
+                    if (!lastPart && Files.size(f.toPath()) < HdfsNameServer.BUFFER_SIZE) {
+                        Files.delete(f.toPath());
+                        continue;
+                    }
+                } catch (IOException e) {
+                    continue;
+                }
+
                 // On sauvegarde le fragment
                 if (!files.containsKey(originalName)) {
                     files.put(originalName, new HashMap<>());
@@ -180,21 +188,20 @@ public class HdfsNode {
      */
     private void runListener() {
 
+        ExecutorService executor = (ExecutorService) Executors.newCachedThreadPool();
+
         while (true) {
             try {
-                Socket sock = this.server.accept();
 
-                HdfsNode self = this;
-                // TODO C'est propre ça ?
-                new Thread(new Runnable() {
+                Socket sock = this.server.accept();
+                executor.submit(new Runnable() {
                     public void run() {
-                        self.handleRequest(sock);
+                        HdfsNode.this.handleRequest(sock);
                     }
-                }).start();
+                });
 
             } catch (IOException e) {
-                // TODO Abandonner la requête proprement
-                e.printStackTrace();
+                System.err.println("Une connexion en erreur a été ignorée.");
             }
         }
 
@@ -202,27 +209,25 @@ public class HdfsNode {
 
     private void handleRequest(Socket sock) {
 
-        try {
+        try (ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream())) {
 
-            ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
-            Action action = (Action) inputStream.readObject();
+            HdfsAction action = (HdfsAction) inputStream.readObject();
 
-            if (action == Action.PING) {
+            if (action == HdfsAction.PING) {
                 ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-                outputStream.writeObject(Action.PONG);
-            } else if (action == Action.WRITE) {
+                outputStream.writeObject(HdfsAction.PONG);
+            } else if (action == HdfsAction.WRITE) {
                 this.handleWrite(sock, inputStream);
-            } else if (action == Action.READ) {
+            } else if (action == HdfsAction.READ) {
                 this.handleRead(sock, inputStream);
-            } else if (action == Action.DELETE) {
+            } else if (action == HdfsAction.DELETE) {
                 this.handleDelete(sock, inputStream);
-            } else if (action == Action.FORCE_RESCAN) {
+            } else if (action == HdfsAction.FORCE_RESCAN) {
                 this.handleForceRescan(sock, inputStream);
             }
 
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            // TODO Abandonner la requête proprement
+            System.err.println("Données invalides, connexion annulée.");
         }
     }
 
@@ -232,12 +237,15 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         File file = this.files.get(fileName).get(fragment);
 
-        OutputStream os = sock.getOutputStream();
-        os.write(Files.readAllBytes(Path.of(file.getAbsolutePath())));
-        os.close();
+        ObjectOutputStream os = new ObjectOutputStream(new BufferedOutputStream(sock.getOutputStream()));
+        os.writeLong(Files.size(file.toPath()));
+        Files.copy(file.toPath(), os);
+        os.flush();
+        sock.shutdownOutput();
 
-        // TODO Gestion du pong
-        assert inputStream.readObject() == Action.PONG;
+        if (inputStream.readObject() != HdfsAction.PONG) {
+            System.err.println("Pong non reçu, le serveur de nom a peut-être rencontré une erreur");
+        }
         sock.close();
     }
 
@@ -250,16 +258,16 @@ public class HdfsNode {
         int fragment = (int) inputStream.readObject();
         boolean lastPart = (boolean) inputStream.readObject();
 
-        // TODO Extraire la génération des noms
-        File f = new File(this.nodeRoot, fileName + "." + fragment + (lastPart ? ".final" : "") + ".part");
+        File f = new File(this.nodeRoot, FragmentInfo.makeFragmentName(fileName, fragment, lastPart));
         Files.copy(rawInput, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-        outputStream.writeObject(Action.PONG);
+        outputStream.writeObject(HdfsAction.PONG);
         this.scanDir();
 
     }
 
     private void handleDelete(Socket sock, ObjectInputStream inputStream) {
+        boolean done = false;
         try {
             String filename = (String) inputStream.readObject();
             if (this.files.containsKey(filename)) {
@@ -270,11 +278,16 @@ public class HdfsNode {
                 }
             }
             this.files.remove(filename);
+            done = true;
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
-            outputStream.writeObject(Action.PONG);
+            outputStream.writeObject(HdfsAction.PONG);
         } catch (ClassNotFoundException | IOException e) {
-            // TODO Gérer proprement
-            e.printStackTrace();
+            if (done) {
+                System.err.println(
+                        "Erreur de connexion lors de la suppression, la suppression a quand même été effectuée.");
+            } else {
+                System.err.println("Erreur de connexion lors de la suppression, opération ignorée.");
+            }
         }
     }
 
@@ -293,13 +306,11 @@ public class HdfsNode {
      * Lance le service de vérification de l'activité du NameServer.
      */
     private void runPinger() {
-        // TODO Oskour
-        HdfsNode self = this;
-        class Pinger implements Runnable {
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
-                    self.sendPing();
+                    HdfsNode.this.sendPing();
                     try {
                         Thread.sleep(5000);
                     } catch (InterruptedException e) {
@@ -307,8 +318,7 @@ public class HdfsNode {
                     }
                 }
             }
-        }
-        new Thread(new Pinger()).start();
+        }).start();
     }
 
     /**
@@ -320,21 +330,19 @@ public class HdfsNode {
 
             ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
-            outputStream.writeObject(Action.PING);
+            outputStream.writeObject(HdfsAction.PING);
             outputStream.writeObject(this.server.getLocalPort());
 
             ObjectInputStream inputStream = new ObjectInputStream(sock.getInputStream());
             Object answer = inputStream.readObject();
 
-            if (answer != Action.PONG) {
-                System.out.println("Ping : Le NameServer ne reconnaît pas le noeud, initialisation...");
+            if (answer != HdfsAction.PONG) {
+                System.err.println("Ping : Le NameServer ne reconnaît pas le noeud, initialisation...");
                 this.initNode();
             }
 
-        } catch (AssertionError e) {
         } catch (IOException | ClassNotFoundException e) {
-            // TODO augmenter l'attente ?
-            System.out.println("Ping : Le NameServer n'est pas joignable.");
+            System.err.println("Ping : Le NameServer n'est pas joignable.");
         }
     }
 

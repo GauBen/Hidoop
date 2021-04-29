@@ -2,6 +2,7 @@
 # == Déploie le projet Hidoop sur les machines ==
 USERNAME=$USER
 HOSTS="pikachu.enseeiht.fr carapuce.enseeiht.fr salameche.enseeiht.fr"
+WORK_DIR="/work/$USER/Hidoop"
 
 # Vérification du dossier courant
 if [ ! -d "./src" ]; then
@@ -10,17 +11,14 @@ if [ ! -d "./src" ]; then
 fi
 
 # Compilation
-WORK_DIR="/work/$USER/Hidoop"
-mkdir -p $WORK_DIR
-echo "Compilation..."
-javac -d $WORK_DIR ./src/**/*.java
-echo "Ok !"
+bash compile.sh
 
 # Nettoyage et upload du projet Hidoop
 SCRIPT_NETTOYAGE="rm -rf /work/"$USERNAME
-SCRIPT_CREATION="mkdir /work/"$USERNAME
-SCRIPT_CREATION_DOSSIER_NODE="mkdir /work/"$USERNAME/"Hidoop/node"
+SCRIPT_CREATION="mkdir -p /work/"$USERNAME
+SCRIPT_CREATION_DOSSIER_NODE="mkdir -p /work/"$USERNAME/"Hidoop/node"
 
+# Puis pareil sur les machines distantes
 for HOST in ${HOSTS}; do
   echo "On nettoie " $HOST
   ssh "$USERNAME@$HOST" "$SCRIPT_NETTOYAGE"

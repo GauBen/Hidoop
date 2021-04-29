@@ -12,7 +12,6 @@ import map.MapReduce;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +19,20 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Timer;
+import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+
+import formats.Format;
+import formats.Format.OpenMode;
+import formats.KVFormat;
+import formats.LineFormat;
+import hdfs.FragmentInfo;
+import hdfs.HdfsClient;
+import hdfs.HdfsNodeInfo;
+import map.MapReduce;
 
 public class Job implements JobInterfaceX {
     // TODO
@@ -37,7 +50,28 @@ public class Job implements JobInterfaceX {
     Format.Type outputFormat;
     String outputFname;
     SortComparator sortComparator;
-    // private int numberOfMapsDone = 0;
+
+    static FragmentsHandler fragmentsHandler;
+
+    public static Job job;
+
+    private Semaphore waitForFinish = new Semaphore(0);
+
+    public static CallBack callBack;
+
+    FragmentWatcher fragmentWatcherTask = new FragmentWatcher();
+
+    private boolean isFileless = false;
+
+    /**
+     * Number of the latest task started
+     */
+    public int taskNum = 0;
+
+    /**
+     * If a job is fileless, it is defined by a list of tasks to do
+     */
+    private List<HidoopTask> tasks;
 
     public Job() {
         super();
@@ -46,6 +80,19 @@ public class Job implements JobInterfaceX {
         this.numberOfReduces = 1;
 
         this.outputFormat = Format.Type.KV;
+
+        Job.job = this;
+    }
+
+    /**
+     * Returns a job that requires no input
+     * @return
+     */
+    public static Job FileLessJob(List<HidoopTask> tasks) {
+        Job filelessJob = new Job();
+        filelessJob.setFileless(true);
+        filelessJob.setTasks(tasks);
+        return job;
     }
 
     /**
@@ -60,7 +107,7 @@ public class Job implements JobInterfaceX {
     /**
      * Path du dossier qui contient lres resultats finaux
      *
-     * @return Stirng
+     * @return String
      */
     public static String getResFolderPath() {
         return System.getProperty("user.dir") + "/res/";
@@ -70,19 +117,31 @@ public class Job implements JobInterfaceX {
     public void startJob(MapReduce mr) {
         this.mapReduce = mr;
 
-        // Get all fragments
+        if(this.isFileless()){
+            // Si on ne prend pas de fichier en input, on va fonctionner differemment
+            // On appelle une fonction differente pour etre sur de ne rien casser ici
+            startFilelessJob();
+            return;
+        }
 
-        List<FragmentInfo> fragments = HdfsClient.listFragments(this.inputFname); // TODO : fix sur intellij
+
+        List<List<FragmentInfo>> fragmentsTable = HdfsClient.listFragments(this.inputFname);
+
+        // Get all fragments
+        // On transforme les fragments sous forme de liste
+        List<FragmentInfo> fragments = Objects.requireNonNull(fragmentsTable).stream().flatMap(List::stream)
+                .collect(Collectors.toList()); // TODO : Verifier
+
+        this.fragmentsHandler = new FragmentsHandler(fragments);
 
         if (fragments == null) {
             System.out.println("Le fichier n'a pas ete trouve dans le HDFS!");
             System.exit(11);
         }
 
-        this.numberOfMaps = fragments.size(); // One fragm ent = one runmap
+        this.numberOfMaps = fragmentsTable.size(); // One fragment = one runmap
 
         // Define the callback used to know when a worker is done
-        CallBackImpl callBack;
         try {
             callBack = new CallBackImpl(this.getNumberOfMaps());
         } catch (RemoteException e) {
@@ -90,58 +149,135 @@ public class Job implements JobInterfaceX {
             return;
         }
 
-        // Connect to all node
-        // TODO : ATTENTION AUX NOMS DES NODES
-        // int n = 0;
-        for (FragmentInfo fragment : fragments) {
-
-            URI addresseDuFragment = fragment.node;
-
+        for (HdfsNodeInfo workerUri : fragmentsHandler.getAllWorkers()) {
+            Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
-                // Get the worker associated with the HDFS (and thus with the fragment)
-                Worker worker = (Worker) Naming.lookup(WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort,
-                        addresseDuFragment.getHost(), addresseDuFragment.getPort()));
+                for (int i = 0; i < worker.getNumberOfCores(); i++) {
+                    FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
-                // Set the Format
-                Format iFormat = this.getFormatFromType(this.inputFormat, fragment.getAbsolutePath());
+                    if (info != null) {
+                        this.executeWork(worker, info, callBack);
+                    }
 
-                // TODO : tester quand la méthode sera définie
-                FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), fragment.id, fragment.lastPart,
-                        fragment.node, fragment.root);
-
-                Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
-
-                worker.runMap(mr, iFormat, oFormat, callBack);
-
-                if (this.mapReduce instanceof QuasiMonteCarlo){
-                    ((QuasiMonteCarlo) this.mapReduce).offset+=((QuasiMonteCarlo) this.mapReduce).size;
                 }
-
-
-            } catch (NotBoundException e) {
-                System.out.println("> Le node " + addresseDuFragment + " n'a pas ete trouve dans le registry");
-                return;
-            } catch (MalformedURLException | RemoteException e) {
-                e.printStackTrace();
-                System.out.println(
-                        "> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
-                return;
+            } catch (RemoteException e) {
+                System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
             }
         }
 
+        Timer timer = new Timer(); // Used to watch fragments regularly
+        timer.scheduleAtFixedRate(fragmentWatcherTask, 1000, 250);
+
+        // We wait for the job to finish
         try {
-            // We wait for all nodes to call CallBack
-            callBack.getSemaphore().acquire();
-            System.out.println("> All done ! Let's request a file refresh...");
-            HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete fait
-
-            // When callback frees semaphores, all nodes are done
-            this.doReduceJob();
-
+            this.waitForFinish.acquire();
+            timer.cancel(); // Stop watching the fragments
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
+    }
+
+    public void startFilelessJob(){
+
+        this.numberOfMaps = this.getTasks().size();
+
+        try {
+            callBack = new CallBackImpl(this.getNumberOfMaps());
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            return;
+        }
+        Set<HdfsNodeInfo> nodes = HdfsClient.listNodes();
+
+        for (HdfsNodeInfo workerUri : nodes) {
+            Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
+            try {
+                for (int i = 0; i < worker.getNumberOfCores(); i++) {
+                    if(taskNum < getTasks().size()){
+                        HidoopTask task = this.getTasks().get(taskNum);
+                        taskNum++;
+
+                        //TODO: lancer la task sur la machine
+
+                    }
+                   // FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+
+                 //   if (info != null) {
+                   //     this.executeWork(worker, info, callBack);
+                    //}
+
+                }
+            } catch (RemoteException e) {
+                System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
+            }
+        }
+
+    }
+
+
+    public void attributeNewWorkTo(HdfsNodeInfo workerUri, CallBack callBack) {
+        FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+
+        Worker worker = getWorkerFromUri(workerUri);
+
+        if (fragment != null && worker != null) {
+            // On demarre le traitement du fragment sur le node associe
+            // TODO: si le fragment ne démarre pas bien, il faut marquer le fragment comme
+            // "NON TRAITE" au lieu de "EN COURS"
+
+            this.executeWork(worker, fragment, callBack);
+
+        }
+    }
+
+    public void executeWork(Worker worker, FragmentInfo info, CallBack callBack) {
+
+        // Set the Format
+        Format iFormat = this.getFormatFromType(this.inputFormat, info.getAbsolutePath());
+
+        // TODO : tester quand la méthode sera définie
+        FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart, info.node,
+                info.root);
+
+        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
+
+        try {
+            worker.runMap(this.mapReduce, iFormat, oFormat, callBack);
+        } catch (RemoteException e) {
+            System.out.println("Impossible de demarrer le runMap sur le worker ! ");
+        }
+
+    }
+
+    public Worker getWorkerFromUri(HdfsNodeInfo workerUri) {
+        String address = WorkerImpl.workerAddress(Job.rmiServerAddress, Job.rmiPort, workerUri.getHost(),
+                workerUri.getPort());
+        try {
+            return (Worker) Naming.lookup(address.replace("hdfs://", ""));
+        } catch (MalformedURLException | NotBoundException e) {
+            e.printStackTrace();
+            System.out.println("> Le node " + workerUri.toString() + " n'a pas ete trouve dans le registry");
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            System.out
+                    .println("> Le rmi registry n'est pas disponible sur " + Job.rmiServerAddress + ":" + Job.rmiPort);
+        }
+        return null;
+    }
+
+    /**
+     * Called by Callback when all workers are done
+     */
+    public void allWorkersAreDone() {
+        System.out.println("> All done ! Let's request a file refresh...");
+        HdfsClient.requestRefresh(); // Trigger pour detecter le fichier de resultat temporaire qui a ete creer
+
+        // When callback frees semaphores, all nodes are done
+        this.doReduceJob();
+
+        // We can let the job end.
+        this.waitForFinish.release();
     }
 
     /**
@@ -178,7 +314,6 @@ public class Job implements JobInterfaceX {
             e.printStackTrace();
         }
 
-
         // Get the complete file from the HDFS and replace the empty file
         System.out.println("> On telecharge les résultats des machines");
         // TODO : verifier que ça remplace bien
@@ -194,7 +329,6 @@ public class Job implements JobInterfaceX {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
 
         // We create the result file
         File file = new File(getResFolderPath(), this.outputFname);
@@ -222,14 +356,14 @@ public class Job implements JobInterfaceX {
     public Format getFormatFromType(Format.Type type, String fName) {
         Format format;
         switch (type) {
-            case KV:
-                format = new KVFormat(fName);
-                break;
-            case LINE:
-                format = new LineFormat(fName);
-                break;
-            default:
-                format = null;
+        case KV:
+            format = new KVFormat(fName);
+            break;
+        case LINE:
+            format = new LineFormat(fName);
+            break;
+        default:
+            format = null;
         }
         if (format == null) {
             throw new RuntimeException("Invalid format " + type);
@@ -312,4 +446,19 @@ public class Job implements JobInterfaceX {
         this.sortComparator = sc;
     }
 
+    public boolean isFileless() {
+        return isFileless;
+    }
+
+    public void setFileless(boolean fileless) {
+        isFileless = fileless;
+    }
+
+    public List<HidoopTask> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<HidoopTask> tasks) {
+        this.tasks = tasks;
+    }
 }
