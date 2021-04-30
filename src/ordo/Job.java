@@ -197,7 +197,7 @@ public class Job implements JobInterfaceX {
 
         HidoopTask taskName = tasks.get(0);
 
-        this.setOutputFname(taskName.nom + "_result");
+        this.setOutputFname(taskName.nom + "_task");
 
         for (HdfsNodeInfo workerUri : nodes) {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
