@@ -2,7 +2,7 @@ package ordo;
 
 import java.util.List;
 
-public class HidoopTask {
+public class HidoopTask implements SerializableTask {
     public String nom;
 
     public List<Integer> dataEntier;
