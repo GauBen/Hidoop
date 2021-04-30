@@ -288,7 +288,7 @@ public class Job implements JobInterfaceX {
                 workerUri.getRoot());
 
         Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getFragmentName());
-
+        System.out.println("Voici le chemin absolu : " + fragmentDuResultat.getAbsolutePath());
         try {
             worker.runFileLessMap((FileLessMapperReducer) this.mapReduce, task, oFormat, callBack);
         } catch (RemoteException e) {

@@ -29,13 +29,23 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
     public HdfsNodeInfo uri;
 
-    public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs)
+    /**
+     *
+     * @param hostDuRmi
+     * @param portDuRmi
+     * @param hostDistantDuNoeudHdfs
+     * @param portDuNodeHdfs
+     * @param root : Racine des fichiers du node
+     * @throws RemoteException
+     * @throws URISyntaxException
+     */
+    public WorkerImpl(String hostDuRmi, int portDuRmi, String hostDistantDuNoeudHdfs, int portDuNodeHdfs, String root)
             throws RemoteException, URISyntaxException {
         super();
         this.id = hostDistantDuNoeudHdfs + "/" + portDuNodeHdfs;
 
 
-        this.uri = new HdfsNodeInfo(hostDistantDuNoeudHdfs, portDuNodeHdfs, "");
+        this.uri = new HdfsNodeInfo(hostDistantDuNoeudHdfs, portDuNodeHdfs, root);
 
         try {
 
@@ -121,7 +131,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
         int portDuNoeudHdfs = Integer.parseInt(args[3]);
 
         try {
-            new WorkerImpl(hostDuRmi, portDuRmi, hostDuNoeudHdfs, portDuNoeudHdfs);
+            new WorkerImpl(hostDuRmi, portDuRmi, hostDuNoeudHdfs, portDuNoeudHdfs, "");
         } catch (RemoteException | URISyntaxException e1) {
             e1.printStackTrace();
         }

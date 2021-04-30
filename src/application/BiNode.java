@@ -25,7 +25,7 @@ public class BiNode {
             public void run() {
                 try {
                     new WorkerImpl(rmiHost, rmiPort, hdfsNode.getExternalHostname(),
-                            hdfsNode.getServer().getLocalPort());
+                            hdfsNode.getServer().getLocalPort(), nodeRoot);
                 } catch (RemoteException | URISyntaxException e) {
                     e.printStackTrace();
                     System.out.println("Echec du lancement du worker");
