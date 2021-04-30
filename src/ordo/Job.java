@@ -181,7 +181,7 @@ public class Job implements JobInterfaceX {
 
     }
 
-    public void startFilelessJob() {
+    private void startFilelessJob() {
 
         this.numberOfMaps = this.getTasks().size();
 
@@ -195,6 +195,10 @@ public class Job implements JobInterfaceX {
         }
         Set<HdfsNodeInfo> nodes = HdfsClient.listNodes();
 
+        HidoopTask taskName = tasks.get(0);
+
+        this.setOutputFname(taskName.nom + "_result");
+
         for (HdfsNodeInfo workerUri : nodes) {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
@@ -206,6 +210,16 @@ public class Job implements JobInterfaceX {
                 System.out.println("Impossible de recuperer  le nombre de coeurs du worker! ");
             }
         }
+
+
+        // We wait for the job to finish
+        try {
+            this.waitForFinish.acquire();
+            //timer.cancel(); // Stop watching the fragments
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
 
     }
 
