@@ -262,7 +262,7 @@ public class Job implements JobInterfaceX {
         FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), info.id, info.lastPart, info.node,
                 info.root);
 
-        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
+        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.filename);
 
         try {
             worker.runMap(this.mapReduce, iFormat, oFormat, callBack);
