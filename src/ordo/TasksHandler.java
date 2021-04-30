@@ -54,6 +54,18 @@ public class TasksHandler {
         this.tasksStates.put(taskId, STATE_PROCESSED);
     }
 
+    public int getNumberOfTasksDone(){
+        int done = 0;
+
+        for (HidoopTask task : taskList){
+            int id = this.taskList.indexOf(task);
+            if(this.tasksStates.get(id) == STATE_PROCESSED){
+                done++;
+            }
+        }
+        return done;
+    }
+
 
 
 

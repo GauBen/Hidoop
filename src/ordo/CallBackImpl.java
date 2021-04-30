@@ -24,17 +24,18 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
      */
     @Override
     public void done(HdfsNodeInfo workerUri, long processDuration, int fragmentID) throws RemoteException, InterruptedException {
-        System.out.println("> Le node " + workerUri + " a fini l'element " + fragmentID + " en " + processDuration + "ms. Il reste " + (this.numberOfMaps - this.numberOfTasksDone.get()));
+
         if(Job.job.isFileless()){
             Job.job.getTasksHandler().setTaskDone(fragmentID);
-
-            if (Job.fragmentsHandler.finishedFragments() == numberOfMaps) {
+            System.out.println("> Le node " + workerUri + " a fini l'element " + fragmentID + " en " + processDuration + "ms. Il reste " + (this.numberOfMaps - Job.job.getTasksHandler().getNumberOfTasksDone()));
+            if (Job.job.getTasksHandler().getNumberOfTasksDone() == numberOfMaps) {
                 Job.job.allWorkersAreDone();
             } else {
                 // Si il reste des fragments à traiter
                 Job.job.attributeNewTaskTo(workerUri, this);
             }
         }else {
+            System.out.println("> Le node " + workerUri + " a fini l'element " + fragmentID + " en " + processDuration + "ms. Il reste " + (this.numberOfMaps - Job.fragmentsHandler.finishedFragments()));
             Job.fragmentsHandler.setFragmentDone(fragmentID);
 
             // Free
