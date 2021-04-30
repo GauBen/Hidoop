@@ -287,7 +287,7 @@ public class Job implements JobInterfaceX {
         FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), idTask, idTask == (tasks.size() - 1), workerUri,
                 workerUri.getRoot());
 
-        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.filename);
+        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getFragmentName());
 
         try {
             worker.runFileLessMap((FileLessMapperReducer) this.mapReduce, task, oFormat, callBack);
