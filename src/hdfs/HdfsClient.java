@@ -221,7 +221,7 @@ public class HdfsClient {
             ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
 
             Set<HdfsNodeInfo> set = new HashSet<>();
-            for (Object i : (Set<?>) in.readObject()) {
+            for (Object i : (List<?>) in.readObject()) {
                 Objects.requireNonNull(i);
                 set.add((HdfsNodeInfo) i);
             }
@@ -275,24 +275,24 @@ public class HdfsClient {
         }
 
         switch (args[0]) {
-        case "rescan":
-            requestRefresh();
-            break;
-        case "read":
-            HdfsRead(args[1], args.length < 3 ? null : args[2]);
-            System.out.println("Téléchargement réalisé avec succès");
-            break;
-        case "delete":
-            HdfsDelete(args[1]);
-            System.out.println("Suppresion réalisée avec succès");
-            break;
-        case "write":
-            if (args.length < 2) {
-                usage();
-                return;
-            }
-            HdfsWrite(Format.Type.KV, args[1], args.length < 3 ? 1 : Integer.parseInt(args[2]));
-            System.out.println("Upload réalisé avec succès");
+            case "rescan":
+                requestRefresh();
+                break;
+            case "read":
+                HdfsRead(args[1], args.length < 3 ? null : args[2]);
+                System.out.println("Téléchargement réalisé avec succès");
+                break;
+            case "delete":
+                HdfsDelete(args[1]);
+                System.out.println("Suppresion réalisée avec succès");
+                break;
+            case "write":
+                if (args.length < 2) {
+                    usage();
+                    return;
+                }
+                HdfsWrite(Format.Type.KV, args[1], args.length < 3 ? 1 : Integer.parseInt(args[2]));
+                System.out.println("Upload réalisé avec succès");
         }
     }
 

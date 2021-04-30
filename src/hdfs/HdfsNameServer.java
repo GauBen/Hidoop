@@ -640,7 +640,7 @@ public class HdfsNameServer {
 
         try (ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream())) {
 
-            outputStream.writeObject(Collections.unmodifiableSet(this.nodes));
+            outputStream.writeObject(new ArrayList<>(this.nodes));
 
             expectPong(inputStream);
 
