@@ -2,14 +2,13 @@
 USERNAME=$USER
 HOSTS="pikachu carapuce salameche"
 
-
-pkill -9 -f RmiCustom
-pkill -9 -f HdfsNameServer
-
 echo "On stoppe les serveurs..."
-for HOST in ${HOSTS} ; do
-    echo "On stoppe " $HOST
-    ssh -l ${USERNAME} ${HOST} "pkill -9 -f BiNode" &
+for HOST in ${HOSTS}; do
+  echo "On stoppe " $HOST
+  ssh -l ${USERNAME} ${HOST} pkill -9 -f BiNode &
 done
 
-
+echo "On arrete le RmiCustom..."
+pkill -9 -f RmiCustom &
+echo "On arrete HdfsNameServer..."
+pkill -9 -f HdfsNameServer &
