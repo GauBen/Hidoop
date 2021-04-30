@@ -1,5 +1,6 @@
 package ordo;
 
+import formats.KV;
 import map.FileLessMapperReducer;
 import application.RmiCustomInterface;
 import formats.Format;
@@ -153,6 +154,7 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
                 } catch (IOException e2) {
                     // TODO Auto-generated catch block
                     e2.printStackTrace();
+                    System.out.println("> Failed to create file");
                 }
 
                 // Get the fragment ID

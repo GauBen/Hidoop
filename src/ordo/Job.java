@@ -197,7 +197,7 @@ public class Job implements JobInterfaceX {
 
         HidoopTask taskName = tasks.get(0);
 
-        this.setOutputFname(taskName.nom + "_task");
+        this.setOutputFname(taskName.nom);
 
         for (HdfsNodeInfo workerUri : nodes) {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
@@ -287,8 +287,8 @@ public class Job implements JobInterfaceX {
         FragmentInfo fragmentDuResultat = new FragmentInfo(getTempFileName(), idTask, idTask == (tasks.size() - 1), workerUri,
                 workerUri.getRoot());
 
-        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getFragmentName());
-        System.out.println("Voici le chemin absolu : " + fragmentDuResultat.getAbsolutePath());
+        Format oFormat = this.getFormatFromType(this.outputFormat, fragmentDuResultat.getAbsolutePath());
+      //  System.out.println("Voici le chemin absolu : " + fragmentDuResultat.getAbsolutePath());
         try {
             worker.runFileLessMap((FileLessMapperReducer) this.mapReduce, task, oFormat, callBack);
         } catch (RemoteException e) {
