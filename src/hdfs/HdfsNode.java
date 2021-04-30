@@ -224,6 +224,8 @@ public class HdfsNode {
                 this.handleDelete(sock, inputStream);
             } else if (action == HdfsAction.FORCE_RESCAN) {
                 this.handleForceRescan(sock, inputStream);
+            } else {
+                System.err.println("Action reçue invalide, connexion annulée.");
             }
 
         } catch (IOException | ClassNotFoundException e) {
