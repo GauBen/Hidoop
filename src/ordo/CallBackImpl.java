@@ -12,7 +12,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
     private static final long serialVersionUID = 1L;
     AtomicInteger numberOfTasksDone = new AtomicInteger(0);
     int numberOfMaps;
-    private Semaphore semaphore;
+    private Semaphore semaphore = new Semaphore(0);
 
     public CallBackImpl(int numberOfMaps) throws RemoteException {
         this.numberOfMaps = numberOfMaps;
@@ -24,7 +24,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
      */
     @Override
     public void done(HdfsNodeInfo workerUri, long processDuration, int fragmentID) throws RemoteException, InterruptedException {
-
+        semaphore.acquire();
         if(Job.job.isFileless()){
             Job.job.getTasksHandler().setTaskDone(fragmentID);
             System.out.println("> Le node " + workerUri + " a fini l'element " + fragmentID + " en " + processDuration + "ms. Il reste " + (this.numberOfMaps - Job.job.getTasksHandler().getNumberOfTasksDone()));
@@ -46,7 +46,7 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
                 Job.job.attributeNewWorkTo(workerUri, this);
             }
         }
-
+        semaphore.release();
     }
 
     @Override
