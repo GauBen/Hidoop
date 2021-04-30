@@ -12,11 +12,11 @@ public class CallBackImpl extends UnicastRemoteObject implements CallBack {
     private static final long serialVersionUID = 1L;
     AtomicInteger numberOfTasksDone = new AtomicInteger(0);
     int numberOfMaps;
-    private Semaphore semaphore = new Semaphore(1);
+    private Semaphore semaphore;
 
     public CallBackImpl(int numberOfMaps) throws RemoteException {
         this.numberOfMaps = numberOfMaps;
-        this.semaphore = new Semaphore(0);
+        this.semaphore = new Semaphore(1);
     }
 
     /**
