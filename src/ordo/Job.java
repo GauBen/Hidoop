@@ -61,6 +61,7 @@ public class Job implements JobInterfaceX {
      *  |  _|   | | | | |  __/ | | |  __/ \__ \ \__ \
      *  |_|     |_| |_|  \___| |_|  \___| |___/ |___/
      *
+     * For jobs that doesn't require a file as input.
      */
 
     /**

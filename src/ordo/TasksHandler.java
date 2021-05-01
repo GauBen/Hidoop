@@ -40,6 +40,7 @@ public class TasksHandler {
         for (HidoopTask task : taskList){
             int id = taskList.indexOf(task);
             if(this.tasksStates.get(id) == STATE_NOT_PROCESSED){
+                this.tasksTime.put(id, System.currentTimeMillis());
                 this.tasksStates.put(id, STATE_IN_PROGRESS);
                 return task;
             }
@@ -50,7 +51,7 @@ public class TasksHandler {
     }
 
     public void setTaskDone(int taskId){
-        //this.tasksTime.put(taskId, System.currentTimeMillis() - this.tasksTime.get(fragmentId));
+        this.tasksTime.put(taskId, System.currentTimeMillis() - this.tasksTime.get(taskId));
         this.tasksStates.put(taskId, STATE_PROCESSED);
     }
 
