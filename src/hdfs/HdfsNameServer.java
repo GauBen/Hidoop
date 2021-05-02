@@ -622,13 +622,14 @@ public class HdfsNameServer {
             return;
         }
 
-        List<List<FragmentInfo>> list = new ArrayList<>();
         Map<Integer, Set<HdfsNodeInfo>> fragments = this.files.get(filename);
+        List<List<FragmentInfo>> list = new ArrayList<>(Collections.max(fragments.keySet()));
         int lastFragment = Collections.max(fragments.keySet());
         for (int id : fragments.keySet()) {
-            Set<HdfsNodeInfo> node = fragments.get(id);
-            list.add(node.stream().map(uri -> new FragmentInfo(filename, id, id == lastFragment, uri, uri.getRoot()))
-                    .collect(Collectors.toList()));
+            Set<HdfsNodeInfo> nodes = fragments.get(id);
+            list.add(id,
+                    nodes.stream().map(node -> new FragmentInfo(filename, id, id == lastFragment, node, node.getRoot()))
+                            .collect(Collectors.toList()));
         }
 
         outputStream.writeObject(list);
