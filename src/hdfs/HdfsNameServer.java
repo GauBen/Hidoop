@@ -617,7 +617,7 @@ public class HdfsNameServer {
         ObjectOutputStream outputStream = new ObjectOutputStream(sock.getOutputStream());
 
         String filename = (String) inputStream.readObject();
-        if (!this.isFileComplete(filename)) {
+        if (!this.files.containsKey(filename)) {
             outputStream.writeObject(null);
             return;
         }
