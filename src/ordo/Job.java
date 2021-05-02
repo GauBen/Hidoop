@@ -365,7 +365,7 @@ public class Job implements JobInterfaceX {
         // Get the complete file from the HDFS and replace the empty file
         System.out.println("> On telecharge les résultats des machines");
         // TODO : verifier que ça remplace bien
-        HdfsClient.HdfsRead(this.getTempFileName(), getTempFolderPath() + this.getTempFileName());
+        HdfsClient.HdfsRead(this.getTempFileName() + "_PROCESSED", getTempFolderPath() + this.getTempFileName());
         System.out.println("> Telechargement termine");
         // We open the temp file
         Format iFormat = this.getFormatFromType(this.outputFormat, getTempFolderPath() + this.getTempFileName());
@@ -397,7 +397,7 @@ public class Job implements JobInterfaceX {
 
         // Delete temp file
         System.out.println("> Let's delete temporary files");
-        HdfsClient.HdfsDelete(getTempFileName());
+        HdfsClient.HdfsDelete(getTempFileName() + "_PROCESSED");
         // TODO : a tester quand ce sera implemente
     }
 
