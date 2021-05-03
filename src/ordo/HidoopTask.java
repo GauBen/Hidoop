@@ -2,6 +2,9 @@ package ordo;
 
 import java.util.List;
 
+/**
+ * Class used when a Job has no input file : it replaces Fragments
+ */
 public class HidoopTask implements SerializableTask {
     public String nom;
 

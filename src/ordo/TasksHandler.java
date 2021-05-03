@@ -30,23 +30,27 @@ public class TasksHandler {
     public TasksHandler(List<HidoopTask> taskList) {
         this.taskList = taskList;
 
-        for (HidoopTask task : taskList){
+        for (HidoopTask task : taskList) {
             int id = taskList.indexOf(task);
             tasksStates.put(id, STATE_NOT_PROCESSED);
         }
     }
 
-    public HidoopTask getAvailableTask(){
-        for (HidoopTask task : taskList){
+    /**
+     * Gives a task if available
+     *
+     * @return HidoopTask or null
+     */
+    public HidoopTask getAvailableTask() {
+        for (HidoopTask task : taskList) {
             int id = taskList.indexOf(task);
-            if(this.tasksStates.get(id) == STATE_NOT_PROCESSED){
+            if (this.tasksStates.get(id) == STATE_NOT_PROCESSED) {
                 this.tasksTime.put(id, System.currentTimeMillis());
                 this.tasksStates.put(id, STATE_IN_PROGRESS);
                 return task;
             }
         }
 
-        System.out.println("No more tasks available!");
         return null;
     }
 

@@ -1,5 +1,15 @@
 package ordo;
 
+import formats.Format;
+import formats.Format.OpenMode;
+import formats.KVFormat;
+import formats.LineFormat;
+import hdfs.FragmentInfo;
+import hdfs.HdfsClient;
+import hdfs.HdfsNodeInfo;
+import map.FileLessMapperReducer;
+import map.MapReduce;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -15,16 +25,6 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
-
-import formats.Format;
-import formats.Format.OpenMode;
-import formats.KVFormat;
-import formats.LineFormat;
-import hdfs.FragmentInfo;
-import hdfs.HdfsClient;
-import hdfs.HdfsNodeInfo;
-import map.FileLessMapperReducer;
-import map.MapReduce;
 
 public class Job implements JobInterfaceX {
     // TODO
@@ -47,7 +47,7 @@ public class Job implements JobInterfaceX {
 
     public static Job job;
 
-    private Semaphore waitForFinish = new Semaphore(0);
+    private final Semaphore waitForFinish = new Semaphore(0);
 
     public static CallBack callBack;
 
@@ -136,7 +136,7 @@ public class Job implements JobInterfaceX {
         List<FragmentInfo> fragments = Objects.requireNonNull(fragmentsTable).stream().flatMap(List::stream)
                 .collect(Collectors.toList()); // TODO : Verifier
 
-        this.fragmentsHandler = new FragmentsHandler(fragments);
+        fragmentsHandler = new FragmentsHandler(fragments);
 
 
         this.checkAlreadyComputedFragments();
@@ -160,7 +160,7 @@ public class Job implements JobInterfaceX {
             Worker worker = Objects.requireNonNull(this.getWorkerFromUri(workerUri));
             try {
                 for (int i = 0; i < worker.getNumberOfCores(); i++) {
-                    FragmentInfo info = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+                    FragmentInfo info = fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
                     if (info != null) {
                         this.executeWork(worker, info, callBack);
@@ -203,11 +203,14 @@ public class Job implements JobInterfaceX {
 
             System.out.println("On a " + fragmentsHandler.finishedFragments() + " fragments déjà traités!");
 
-        }catch (NullPointerException e){
+        } catch (NullPointerException e) {
             System.out.println("Pas de fragments déjà calculés. On part de 0");
         }
     }
 
+    /**
+     * Start a job that doesn't require an input file from HDFS
+     */
     private void startFilelessJob() {
 
         this.numberOfMaps = this.getTasks().size();
@@ -252,7 +255,7 @@ public class Job implements JobInterfaceX {
 
 
     public void attributeNewWorkTo(HdfsNodeInfo workerUri, CallBack callBack) {
-        FragmentInfo fragment = this.fragmentsHandler.getAvailableFragmentForURI(workerUri);
+        FragmentInfo fragment = fragmentsHandler.getAvailableFragmentForURI(workerUri);
 
         Worker worker = getWorkerFromUri(workerUri);
 

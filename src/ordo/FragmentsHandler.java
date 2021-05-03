@@ -1,14 +1,10 @@
 package ordo;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import hdfs.FragmentInfo;
 import hdfs.HdfsNodeInfo;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FragmentsHandler {
 
@@ -16,7 +12,7 @@ public class FragmentsHandler {
     static final int STATE_IN_PROGRESS = 1;
     static final int STATE_PROCESSED = 2;
 
-    private List<FragmentInfo> rawFragmentList;
+    private final List<FragmentInfo> rawFragmentList;
 
     /**
      * Integer : id du fragment List : toutes les FragmentInfo qui ont cet ID La
@@ -78,20 +74,30 @@ public class FragmentsHandler {
         return null;
     }
 
-    public void setFragmentDone(int fragmentId){
-        if(this.fragmentsTime.getOrDefault(fragmentId, ((long)-1)) == -1){
+    /**
+     * Mark a fragment as done
+     *
+     * @param fragmentId
+     */
+    public void setFragmentDone(int fragmentId) {
+        if (this.fragmentsTime.getOrDefault(fragmentId, ((long) -1)) == -1) {
             this.fragmentsTime.put(fragmentId, (long) -1);
-        }else{
+        } else {
             this.fragmentsTime.put(fragmentId, System.currentTimeMillis() - this.fragmentsTime.get(fragmentId));
         }
         this.fragmentsStates.put(fragmentId, STATE_PROCESSED);
     }
 
-    public long meanExecutionTime(){
+    /**
+     * Get mean execution time of finished fragments
+     *
+     * @return
+     */
+    public long meanExecutionTime() {
         long time = 0;
-        for (int fragmentId : this.fragmentsTime.keySet()){
-            if(this.fragmentsStates.get(fragmentId) == STATE_PROCESSED){
-                if(this.fragmentsTime.get(fragmentId) > 0L){
+        for (int fragmentId : this.fragmentsTime.keySet()) {
+            if (this.fragmentsStates.get(fragmentId) == STATE_PROCESSED) {
+                if (this.fragmentsTime.get(fragmentId) > 0L) {
                     time += this.fragmentsTime.get(fragmentId);
                 }
             }
@@ -100,11 +106,16 @@ public class FragmentsHandler {
         return time / this.finishedFragments();
     }
 
-    public List<Integer> currentlyProcessingFragmentIds(){
+    /**
+     * Get a list of all the fragment currently processing
+     *
+     * @return
+     */
+    public List<Integer> currentlyProcessingFragmentIds() {
         List<Integer> list = new ArrayList<>();
 
-        for(int fragmentId : this.fragmentsStates.keySet()){
-            if(this.fragmentsStates.get(fragmentId) == STATE_PROCESSED){
+        for (int fragmentId : this.fragmentsStates.keySet()) {
+            if (this.fragmentsStates.get(fragmentId) == STATE_PROCESSED) {
                 list.add(fragmentId);
             }
         }
@@ -112,10 +123,16 @@ public class FragmentsHandler {
         return list;
     }
 
-    public long getExecutionTime(int fragmentId){
-        if (this.fragmentsStates.get(fragmentId) == STATE_IN_PROGRESS){
+    /**
+     * Get execution time for a specific fragment ID
+     *
+     * @param fragmentId
+     * @return
+     */
+    public long getExecutionTime(int fragmentId) {
+        if (this.fragmentsStates.get(fragmentId) == STATE_IN_PROGRESS) {
             return System.currentTimeMillis() - this.fragmentsTime.get(fragmentId);
-        }else{
+        } else {
             return this.fragmentsTime.get(fragmentId);
         }
     }
