@@ -138,6 +138,9 @@ public class Job implements JobInterfaceX {
 
         this.fragmentsHandler = new FragmentsHandler(fragments);
 
+
+        this.checkAlreadyComputedFragments();
+
         if (fragments == null) {
             System.out.println("Le fichier n'a pas ete trouve dans le HDFS!");
             System.exit(11);
@@ -180,6 +183,29 @@ public class Job implements JobInterfaceX {
             e.printStackTrace();
         }
 
+    }
+
+    /**
+     * Checks if some fragments were already computed in a previous Job that crashed
+     */
+    private void checkAlreadyComputedFragments() {
+        String processedFileName = this.getTempFileName().replace("_result", "_processed");
+        HdfsClient.requestRefresh();
+        try{
+            List<List<FragmentInfo>> fragmentsOfOutput = HdfsClient.listFragments(processedFileName);
+            System.out.println("Une exécution précédente de ce Job a mal tournée ! On reprend");
+            List<FragmentInfo> fragmentInfos= Objects.requireNonNull(fragmentsOfOutput).stream().flatMap(List::stream)
+                    .collect(Collectors.toList());
+
+            for(FragmentInfo frag : fragmentInfos){
+                fragmentsHandler.setFragmentDone(frag.id);
+            }
+
+            System.out.println("On a " + fragmentsHandler.finishedFragments() + " fragments déjà traités!");
+
+        }catch (NullPointerException e){
+            System.out.println("Pas de fragments déjà calculés. On part de 0");
+        }
     }
 
     private void startFilelessJob() {

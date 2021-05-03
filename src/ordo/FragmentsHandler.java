@@ -79,7 +79,11 @@ public class FragmentsHandler {
     }
 
     public void setFragmentDone(int fragmentId){
-        this.fragmentsTime.put(fragmentId, System.currentTimeMillis() - this.fragmentsTime.get(fragmentId));
+        if(this.fragmentsTime.getOrDefault(fragmentId, ((long)-1)) == -1){
+            this.fragmentsTime.put(fragmentId, (long) -1);
+        }else{
+            this.fragmentsTime.put(fragmentId, System.currentTimeMillis() - this.fragmentsTime.get(fragmentId));
+        }
         this.fragmentsStates.put(fragmentId, STATE_PROCESSED);
     }
 
@@ -87,7 +91,9 @@ public class FragmentsHandler {
         long time = 0;
         for (int fragmentId : this.fragmentsTime.keySet()){
             if(this.fragmentsStates.get(fragmentId) == STATE_PROCESSED){
-                time += this.fragmentsTime.get(fragmentId);
+                if(this.fragmentsTime.get(fragmentId) > 0L){
+                    time += this.fragmentsTime.get(fragmentId);
+                }
             }
 
         }
