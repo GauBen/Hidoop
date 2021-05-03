@@ -7,7 +7,10 @@ import map.FileLessMapperReducer;
 import ordo.HidoopTask;
 import ordo.Job;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class EvaluationPageRank implements FileLessMapperReducer {
 
@@ -121,7 +124,7 @@ public class EvaluationPageRank implements FileLessMapperReducer {
         System.out.println("Usage : EvaluationPageRank <URL>");
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         if (args.length < 1) {
             usage();
             return;

@@ -8,6 +8,6 @@ import java.rmi.RemoteException;
 
 public interface RmiCustomInterface extends Remote {
 
-    public void registerNode(String adresseDuRmi, int portDuRmi, String address, int port, Worker worker) throws MalformedURLException, RemoteException;
+    void registerNode(String adresseDuRmi, int portDuRmi, String address, int port, Worker worker) throws MalformedURLException, RemoteException;
 
 }

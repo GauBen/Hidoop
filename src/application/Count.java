@@ -5,12 +5,7 @@ package application;
  * hidoop (celui qui contient le répertoire applications contenant le présent fichier)
  */
 
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.HashMap;
 
 public class Count {
@@ -26,7 +21,7 @@ public class Count {
                 String l = lnr.readLine();
                 if (l == null)
                     break;
-                String tokens[] = l.split(" ");
+                String[] tokens = l.split(" ");
                 for (String tok : tokens) {
                     if (hm.containsKey(tok))
                         hm.put(tok, hm.get(tok).intValue() + 1);

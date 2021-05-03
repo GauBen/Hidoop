@@ -1,4 +1,5 @@
 package application;// v0.0 PM, le 18/12/17
+
 import formats.FormatReader;
 import formats.FormatWriter;
 import formats.KV;
@@ -7,9 +8,10 @@ import ordo.HidoopTask;
 import ordo.Job;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import java.io.IOException;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
@@ -106,12 +108,12 @@ public class CG implements FileLessMapperReducer {
 
     }
 
-    public static void main (String args[]) {
+    public static void main(String[] args) {
         // 1 argument : URL du site à évaluer
         CG coGr = null;
         String page;
         String lien;
-        URL u ;
+        URL u;
         Document doc;
         Set<String> liens = new HashSet<String>();
         LinkedList<String> aTraiter = new LinkedList<String>();

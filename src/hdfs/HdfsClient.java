@@ -6,27 +6,14 @@
 
 package hdfs;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import formats.Format;
+
+import java.io.*;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import formats.Format;
 
 /**
  * Un client HDFS, qui distribue des fragments de fichiers aux noeuds HDFS.
@@ -261,7 +248,7 @@ public class HdfsClient {
     /**
      * @return Une socket ouverte sur le NameServer HDFS
      */
-    private static Socket newNameServerSocket() throws UnknownHostException, IOException {
+    private static Socket newNameServerSocket() throws IOException {
         return new Socket(HdfsNameServer.DEFAULT_HOST, HdfsNameServer.DEFAULT_PORT);
     }
 

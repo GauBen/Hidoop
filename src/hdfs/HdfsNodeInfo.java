@@ -6,9 +6,9 @@ public class HdfsNodeInfo implements Serializable {
 
     private static final long serialVersionUID = 2248373901427128684L;
 
-    private String host;
-    private int port;
-    private String root;
+    private final String host;
+    private final int port;
+    private final String root;
 
     public HdfsNodeInfo(String host, int port, String root) {
         this.host = host;

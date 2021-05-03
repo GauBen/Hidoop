@@ -1,16 +1,10 @@
 package hdfs;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
@@ -23,7 +17,7 @@ public class HdfsNode {
     /**
      * Racine des fichiers du noeud.
      */
-    private String nodeRoot;
+    private final String nodeRoot;
 
     /**
      * Serveur du noeud.
@@ -33,12 +27,12 @@ public class HdfsNode {
     /**
      * Hôte du NameServer.
      */
-    private String nameServerHost;
+    private final String nameServerHost;
 
     /**
      * Port du NameServer.
      */
-    private int nameServerPort;
+    private final int nameServerPort;
 
     /**
      * Liste des fichiers.
@@ -116,7 +110,7 @@ public class HdfsNode {
     /**
      * Crée une socket vers le NameServer.
      */
-    private Socket newNameServerSocket() throws UnknownHostException, IOException {
+    private Socket newNameServerSocket() throws IOException {
         return new Socket(this.nameServerHost, this.nameServerPort);
     }
 
@@ -179,7 +173,7 @@ public class HdfsNode {
      */
     private void runListener() {
 
-        ExecutorService executor = (ExecutorService) Executors.newCachedThreadPool();
+        ExecutorService executor = Executors.newCachedThreadPool();
 
         while (true) {
             try {

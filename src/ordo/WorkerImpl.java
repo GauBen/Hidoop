@@ -1,18 +1,16 @@
 package ordo;
 
-import formats.KV;
-import map.FileLessMapperReducer;
 import application.RmiCustomInterface;
 import formats.Format;
 import formats.Format.OpenMode;
 import hdfs.HdfsNodeInfo;
+import map.FileLessMapperReducer;
 import map.Mapper;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;

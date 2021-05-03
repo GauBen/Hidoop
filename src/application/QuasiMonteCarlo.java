@@ -1,11 +1,9 @@
 package application;
 
-import formats.Format;
 import formats.FormatReader;
 import formats.FormatWriter;
 import formats.KV;
 import map.FileLessMapperReducer;
-import map.MapReduce;
 import ordo.HidoopTask;
 import ordo.Job;
 
@@ -97,7 +95,7 @@ public class QuasiMonteCarlo implements FileLessMapperReducer {
         System.out.println("Usage : QuasiMonteCarlo <taille> <nbTaches>");
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         if (args.length < 2) {
             usage();
             return;
@@ -131,25 +129,28 @@ public class QuasiMonteCarlo implements FileLessMapperReducer {
     }
 
 
-
-
-
-    /** 2-dimensional Halton sequence {H(i)},
+    /**
+     * 2-dimensional Halton sequence {H(i)},
      * where H(i) is a 2-dimensional point and i >= 1 is the index.
      * Halton sequence is used to generate sample points for Pi estimation.
      */
     private static class HaltonSequence {
-        /** Bases */
+        /**
+         * Bases
+         */
         static final int[] P = {2, 3};
-        /** Maximum number of digits allowed */
+        /**
+         * Maximum number of digits allowed
+         */
         static final int[] K = {63, 40};
 
         private long index;
-        private double[] x;
-        private double[][] q;
-        private int[][] d;
+        private final double[] x;
+        private final double[][] q;
+        private final int[][] d;
 
-        /** Initialize to H(startindex),
+        /**
+         * Initialize to H(startindex),
          * so the sequence begins with H(startindex+1).
          */
         HaltonSequence(long startindex) {
@@ -157,7 +158,7 @@ public class QuasiMonteCarlo implements FileLessMapperReducer {
             x = new double[K.length];
             q = new double[K.length][];
             d = new int[K.length][];
-            for(int i = 0; i < K.length; i++) {
+            for (int i = 0; i < K.length; i++) {
                 q[i] = new double[K[i]];
                 d[i] = new int[K[i]];
             }

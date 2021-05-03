@@ -12,22 +12,19 @@ import java.util.HashMap;
 public class MyMapReduce implements MapReduce {
     private static final long serialVersionUID = 1L;
 
-    // MapReduce program that computes word counts
-    public void map(FormatReader reader, FormatWriter writer) {
-
-        HashMap<String, Integer> hm = new HashMap<>();
-        KV kv;
-        while ((kv = reader.read()) != null) {
-            String tokens[] = kv.v.split(" ");
-            for (String tok : tokens) {
-                if (hm.containsKey(tok))
-                    hm.put(tok, hm.get(tok).intValue() + 1);
-                else
-                    hm.put(tok, 1);
-            }
+    public static void main(String[] args) {
+        if (args.length < 1) {
+            usage();
+            return;
         }
-        for (String k : hm.keySet())
-            writer.write(new KV(k, hm.get(k).toString()));
+        Job j = new Job();
+        j.setInputFormat(Format.Type.LINE);
+        j.setInputFname(args[0]);
+        long t1 = System.currentTimeMillis();
+        j.startJob(new MyMapReduce());
+        long t2 = System.currentTimeMillis();
+        System.out.println("time in ms =" + (t2 - t1));
+        System.exit(0);
     }
 
     public void reduce(FormatReader reader, FormatWriter writer) {
@@ -47,18 +44,21 @@ public class MyMapReduce implements MapReduce {
         System.out.println("Usage : MyMapReduce <id>");
     }
 
-    public static void main(String args[]) {
-        if (args.length < 1) {
-            usage();
-            return;
+    // MapReduce program that computes word counts
+    public void map(FormatReader reader, FormatWriter writer) {
+
+        HashMap<String, Integer> hm = new HashMap<>();
+        KV kv;
+        while ((kv = reader.read()) != null) {
+            String[] tokens = kv.v.split(" ");
+            for (String tok : tokens) {
+                if (hm.containsKey(tok))
+                    hm.put(tok, hm.get(tok).intValue() + 1);
+                else
+                    hm.put(tok, 1);
+            }
         }
-        Job j = new Job();
-        j.setInputFormat(Format.Type.LINE);
-        j.setInputFname(args[0]);
-        long t1 = System.currentTimeMillis();
-        j.startJob(new MyMapReduce());
-        long t2 = System.currentTimeMillis();
-        System.out.println("time in ms =" + (t2 - t1));
-        System.exit(0);
+        for (String k : hm.keySet())
+            writer.write(new KV(k, hm.get(k).toString()));
     }
 }

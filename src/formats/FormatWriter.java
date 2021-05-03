@@ -1,5 +1,5 @@
 package formats;
 
 public interface FormatWriter {
-    public void write(KV record);
+    void write(KV record);
 }

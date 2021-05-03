@@ -1,10 +1,10 @@
 package map;
 
-import java.io.Serializable;
-
 import formats.FormatReader;
 import formats.FormatWriter;
 
+import java.io.Serializable;
+
 public interface Reducer extends Serializable {
-    public void reduce(FormatReader reader, FormatWriter writer);
+    void reduce(FormatReader reader, FormatWriter writer);
 }

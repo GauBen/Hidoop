@@ -6,23 +6,12 @@
 
 package hdfs;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -56,12 +45,12 @@ public class HdfsNameServer {
     /**
      * Serveur qui traite les requêtes HDFS.
      */
-    private ServerSocket server;
+    private final ServerSocket server;
 
     /**
      * Ensemble des noeuds.
      */
-    private volatile Set<HdfsNodeInfo> nodes = new HashSet<>();
+    private final Set<HdfsNodeInfo> nodes = new HashSet<>();
 
     /**
      * Liste des fichiers.
@@ -189,7 +178,7 @@ public class HdfsNameServer {
      * Lance l'attente des requêtes entrantes.
      */
     private void runListener() {
-        ExecutorService executor = (ExecutorService) Executors.newCachedThreadPool();
+        ExecutorService executor = Executors.newCachedThreadPool();
 
         while (true) {
             try {
@@ -560,7 +549,7 @@ public class HdfsNameServer {
             String fileName = (String) entry.getKey();
 
             if (!this.files.containsKey(fileName)) {
-                this.files.put((String) fileName, new HashMap<>());
+                this.files.put(fileName, new HashMap<>());
             }
             Map<Integer, Set<HdfsNodeInfo>> fragmentMap = this.files.get(fileName);
 
@@ -660,7 +649,7 @@ public class HdfsNameServer {
 
         for (HdfsNodeInfo node : new HashSet<>(this.nodes)) {
             try (Socket nodeSock = new Socket(node.getHost(), node.getPort());
-                    ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream());) {
+                 ObjectOutputStream nodeOutputStream = new ObjectOutputStream(nodeSock.getOutputStream())) {
 
                 nodeOutputStream.writeObject(HdfsAction.FORCE_RESCAN);
 

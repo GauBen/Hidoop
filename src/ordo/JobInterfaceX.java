@@ -5,27 +5,27 @@ package ordo;
 import formats.Format;
 
 public interface JobInterfaceX extends JobInterface {
-    public void setNumberOfReduces(int tasks);
+    int getNumberOfReduces();
 
-    public void setNumberOfMaps(int tasks);
+    void setNumberOfReduces(int tasks);
 
-    public void setOutputFormat(Format.Type ft);
+    int getNumberOfMaps();
 
-    public void setOutputFname(String fname);
+    void setNumberOfMaps(int tasks);
 
-    public void setSortComparator(SortComparator sc);
+    Format.Type getInputFormat();
 
-    public int getNumberOfReduces();
+    Format.Type getOutputFormat();
 
-    public int getNumberOfMaps();
+    void setOutputFormat(Format.Type ft);
 
-    public Format.Type getInputFormat();
+    String getInputFname();
 
-    public Format.Type getOutputFormat();
+    String getOutputFname();
 
-    public String getInputFname();
+    void setOutputFname(String fname);
 
-    public String getOutputFname();
+    SortComparator getSortComparator();
 
-    public SortComparator getSortComparator();
+    void setSortComparator(SortComparator sc);
 }
