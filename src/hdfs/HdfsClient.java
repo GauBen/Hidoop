@@ -197,8 +197,11 @@ public class HdfsClient {
 
             List<List<FragmentInfo>> lst = new ArrayList<>();
             for (Object i : (List<?>) in.readObject()) {
-                Objects.requireNonNull(i);
-                lst.add(((List<?>) i).stream().map(obj -> (FragmentInfo) obj).collect(Collectors.toList()));
+                if (i == null) {
+                    lst.add(null);
+                } else {
+                    lst.add(((List<?>) i).stream().map(obj -> (FragmentInfo) obj).collect(Collectors.toList()));
+                }
             }
 
             out.writeObject(HdfsAction.PONG);
