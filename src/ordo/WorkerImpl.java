@@ -169,6 +169,11 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
                 try {
                     long endTime = System.currentTimeMillis();
+                    if(tempResultFile.renameTo(new File(writer.getFname().replace("_result", "_processed")))){
+                        System.out.println("File renamed");
+                    }else {
+                        System.out.println("File can't be renamed");
+                    }
                     cb.done(WorkerImpl.this.uri, endTime - startTime, fragmentNumber);
                 } catch (RemoteException | InterruptedException e) {
                     e.printStackTrace();
@@ -215,7 +220,12 @@ public class WorkerImpl extends UnicastRemoteObject implements Worker {
 
                     try {
                         long endTime = System.currentTimeMillis();
-                        cb.done(WorkerImpl.this.uri, endTime - startTime, fragmentNumber);
+                        if(tempResultFile.renameTo(new File(writer.getFname().replace("_result", "_processed")))){
+                            System.out.println("File renamed");
+                        }else {
+                            System.out.println("File can't be renamed");
+                        }
+                            cb.done(WorkerImpl.this.uri, endTime - startTime, fragmentNumber);
                     } catch (RemoteException | InterruptedException e) {
                         e.printStackTrace();
                     }
